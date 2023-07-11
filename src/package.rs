@@ -5,8 +5,11 @@ use anyhow::{anyhow, Context};
 use binrw::{BinReaderExt, VecArgs};
 use nohash_hasher::IntMap;
 use std::borrow::Cow;
+use std::cell::RefCell;
+use std::collections::hash_map::Entry;
 use std::fs::File;
 use std::io::{BufReader, Read, Seek, SeekFrom};
+use std::rc::Rc;
 use std::slice::Iter;
 
 pub const BLOCK_SIZE: usize = 0x40000;
@@ -15,16 +18,16 @@ pub trait ReadSeek: Read + Seek {}
 impl<R: Read + Seek> ReadSeek for R {}
 
 pub struct Package {
-    gcm: PkgGcmState,
+    gcm: RefCell<PkgGcmState>,
 
     header: PackageHeader,
     entries: Vec<EntryHeader>,
     blocks: Vec<BlockHeader>,
 
-    reader: Box<dyn ReadSeek>,
+    reader: RefCell<Box<dyn ReadSeek>>,
     path_base: String,
 
-    block_cache: IntMap<usize, Vec<u8>>,
+    block_cache: RefCell<IntMap<usize, Rc<Vec<u8>>>>,
 }
 
 impl Package {
@@ -60,8 +63,8 @@ impl Package {
 
         Ok(Package {
             path_base,
-            reader: Box::new(reader),
-            gcm: PkgGcmState::new(header.pkg_id),
+            reader: RefCell::new(Box::new(reader)),
+            gcm: RefCell::new(PkgGcmState::new(header.pkg_id)),
             header,
             entries,
             blocks,
@@ -73,13 +76,15 @@ impl Package {
         self.entries.iter()
     }
 
-    fn get_block_raw(&mut self, block_index: usize) -> anyhow::Result<Cow<[u8]>> {
+    fn get_block_raw(&self, block_index: usize) -> anyhow::Result<Cow<[u8]>> {
         let bh = &self.blocks[block_index];
         let mut data = vec![0u8; bh.size as usize];
 
         if self.header.patch_id == bh.patch_id {
-            self.reader.seek(SeekFrom::Start(bh.offset as u64))?;
-            self.reader.read_exact(&mut data)?;
+            self.reader
+                .borrow_mut()
+                .seek(SeekFrom::Start(bh.offset as u64))?;
+            self.reader.borrow_mut().read_exact(&mut data)?;
         } else {
             let mut f =
                 File::open(format!("{}_{}.pkg", self.path_base, bh.patch_id)).context(format!(
@@ -94,16 +99,14 @@ impl Package {
         Ok(Cow::Owned(data))
     }
 
-    pub fn get_block(&mut self, block_index: usize) -> anyhow::Result<Cow<[u8]>> {
-        if self.block_cache.contains_key(&block_index) {
-            return Ok(Cow::Borrowed(self.block_cache.get(&block_index).unwrap()));
-        }
-
+    /// Reads, decrypts and decompresses the specified block
+    fn read_block(&self, block_index: usize) -> anyhow::Result<Vec<u8>> {
         let bh = self.blocks[block_index].clone();
         let mut block_data = self.get_block_raw(block_index)?.to_vec();
 
         if (bh.flags & 0x2) != 0 {
             self.gcm
+                .borrow_mut()
                 .decrypt_block_in_place(bh.flags, &bh.gcm_tag, &mut block_data)?;
         };
 
@@ -115,24 +118,33 @@ impl Package {
             block_data
         };
 
-        self.block_cache.insert(block_index, decompressed_data);
-        Ok(Cow::Borrowed(self.block_cache.get(&block_index).unwrap()))
+        Ok(decompressed_data)
     }
 
-    pub fn read_entry(&mut self, index: usize) -> anyhow::Result<Cow<[u8]>> {
+    /// Gets the specified block from the cache or reads it
+    pub fn get_block(&self, block_index: usize) -> anyhow::Result<Rc<Vec<u8>>> {
+        Ok(match self.block_cache.borrow_mut().entry(block_index) {
+            Entry::Occupied(o) => o.get().clone(),
+            Entry::Vacant(v) => {
+                let block = self.read_block(*v.key())?;
+                v.insert(Rc::new(block)).clone()
+            }
+        })
+    }
+
+    pub fn read_entry(&self, index: usize) -> anyhow::Result<Cow<[u8]>> {
         let entry = self
             .entries
             .get(index)
-            .ok_or(anyhow!("Entry index is out of range"))?
-            .clone();
+            .ok_or(anyhow!("Entry index is out of range"))?;
 
         let mut buffer = Vec::with_capacity(entry.file_size as usize);
         let mut current_offset = 0usize;
         let mut current_block = entry.starting_block;
 
         while current_offset < entry.file_size as usize {
-            let block_data = self.get_block(current_block as usize)?;
             let remaining_bytes = entry.file_size as usize - current_offset;
+            let block_data = self.get_block(current_block as usize)?;
 
             if current_block == entry.starting_block {
                 let block_start_offset = (entry.starting_block_offset * 16) as usize;

@@ -1,14 +1,12 @@
 use destiny2_pkg::package::Package;
-use destiny2_pkg::structs::EntryHeader;
 use std::fs::File;
 use std::io::Write;
 
 fn main() -> anyhow::Result<()> {
-    let mut package = Package::open(&std::env::args().nth(1).unwrap())?;
-    let entries: Vec<EntryHeader> = package.entries().cloned().collect();
+    let package = Package::open(&std::env::args().nth(1).unwrap())?;
     std::fs::create_dir("./files/").ok();
 
-    for (i, e) in entries.iter().enumerate() {
+    for (i, e) in package.entries().enumerate() {
         if e.reference != u32::MAX {
             print!(
                 "{i} 0x{:x} - p={:x} f={} ",
@@ -68,7 +66,11 @@ fn main() -> anyhow::Result<()> {
         let data = match package.read_entry(i) {
             Ok(data) => data,
             Err(e) => {
-                eprintln!("Failed to extract entry {}/{}: {e}", i, entries.len() - 1);
+                eprintln!(
+                    "Failed to extract entry {}/{}: {e}",
+                    i,
+                    package.entries().count() - 1
+                );
                 continue;
             }
         };
