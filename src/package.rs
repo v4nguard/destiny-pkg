@@ -20,7 +20,7 @@ impl<R: Read + Seek> ReadSeek for R {}
 pub struct Package {
     gcm: RefCell<PkgGcmState>,
 
-    header: PackageHeader,
+    pub header: PackageHeader,
     entries: Vec<EntryHeader>,
     blocks: Vec<BlockHeader>,
 
@@ -147,7 +147,7 @@ impl Package {
             let block_data = self.get_block(current_block as usize)?;
 
             if current_block == entry.starting_block {
-                let block_start_offset = (entry.starting_block_offset * 16) as usize;
+                let block_start_offset = entry.starting_block_offset as usize;
                 let block_remaining = block_data.len() - block_start_offset;
                 let copy_size = if block_remaining < remaining_bytes {
                     block_remaining

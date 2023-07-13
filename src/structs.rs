@@ -51,7 +51,7 @@ pub struct EntryHeader {
     #[br(calc = _block_info as u32 & 0x3fff)]
     pub starting_block: u32,
 
-    #[br(calc = (_block_info >> 14) as u32 & 0x3FFF)]
+    #[br(calc = ((_block_info >> 14) as u32 & 0x3FFF) << 4)]
     pub starting_block_offset: u32,
 
     #[br(calc = (_block_info >> 28) as u32)]

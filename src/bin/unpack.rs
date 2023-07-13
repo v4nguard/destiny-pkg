@@ -6,13 +6,19 @@ fn main() -> anyhow::Result<()> {
     let package = Package::open(&std::env::args().nth(1).unwrap())?;
     std::fs::create_dir("./files/").ok();
 
+    println!(
+        "PKG {:04x}_{}",
+        package.header.pkg_id, package.header.patch_id
+    );
     for (i, e) in package.entries().enumerate() {
+        print!("{}/{} - ", e.file_type, e.file_subtype);
         if e.reference != u32::MAX {
             print!(
-                "{i} 0x{:x} - p={:x} f={} ",
+                "{i} 0x{:x} - p={:x} f={} / r=0x{:x} ",
                 e.file_size,
-                (e.reference >> 13) & 0x3ff,
-                e.reference & 0x1fff
+                (e.reference & !0x80800000) >> 13,
+                e.reference & 0x1fff,
+                e.reference
             );
         } else {
             print!("{i} 0x{:x} - ", e.file_size);
@@ -20,7 +26,7 @@ fn main() -> anyhow::Result<()> {
         let ext = match (e.file_type, e.file_subtype) {
             (26, 6) => {
                 println!("WWise WAVE Audio");
-                "wav".to_string()
+                "wem".to_string()
             }
             (26, 7) => {
                 println!("Havok File");
