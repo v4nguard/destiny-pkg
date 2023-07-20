@@ -1,4 +1,5 @@
-use binrw::BinRead;
+use crate::TagHash;
+use binrw::{BinRead, BinWrite};
 use std::fmt::Debug;
 use std::io::SeekFrom;
 
@@ -26,6 +27,9 @@ pub struct PackageHeader {
 
     #[br(seek_before = SeekFrom::Start(0xd0))]
     pub block_table_size: u32,
+
+    #[br(seek_before = SeekFrom::Start(0xf0))]
+    pub unkf0_table_offset: u32,
 
     #[br(seek_before = SeekFrom::Start(0x110))]
     #[br(map(|v: u32| v + 96))]
@@ -66,4 +70,11 @@ pub struct BlockHeader {
     pub flags: u16,
     pub hash: [u8; 20],
     pub gcm_tag: [u8; 16],
+}
+
+#[derive(BinRead, BinWrite, Debug, Clone)]
+pub struct HashTableEntry {
+    pub hash64: u64,
+    pub hash32: TagHash,
+    pub reference: TagHash,
 }

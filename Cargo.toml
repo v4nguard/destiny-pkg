@@ -1,6 +1,6 @@
 [package]
-name = "destiny2-pkg"
-version = "0.1.0"
+name = "destiny-pkg"
+version = "0.2.0"
 edition = "2021"
 authors = ["Lucas Cohaereo <cohaereo@protonmail.com>"]
 
@@ -12,3 +12,6 @@ binrw = "0.11"
 lazy_static = "1.4.0"
 libloading = "0.8"
 nohash-hasher = "0.2.0"
+rayon = "1.7.0"
+clap = { version = "4.3.11", features = ["derive"] }
+clap-num = "1.0.2"

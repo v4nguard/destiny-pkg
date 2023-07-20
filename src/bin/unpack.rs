@@ -1,88 +1,80 @@
-use destiny2_pkg::package::Package;
+use clap::Parser;
+use destiny_pkg::{PackageVersion, TagHash};
 use std::fs::File;
 use std::io::Write;
+use std::path::PathBuf;
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None, disable_version_flag(true))]
+struct Args {
+    /// Package to extract
+    package: String,
+
+    /// Don't extract any files, just print them
+    #[arg(short, long, default_value = "false")]
+    dry_run: bool,
+
+    /// Directory to extract to (default: ./out/pkg_name)
+    #[arg(short)]
+    output_dir: Option<String>,
+
+    /// Version of the package to extract
+    #[arg(short, value_enum)]
+    version: PackageVersion,
+}
 
 fn main() -> anyhow::Result<()> {
-    let package = Package::open(&std::env::args().nth(1).unwrap())?;
-    std::fs::create_dir("./files/").ok();
+    let args = Args::parse();
 
-    println!(
-        "PKG {:04x}_{}",
-        package.header.pkg_id, package.header.patch_id
-    );
-    for (i, e) in package.entries().enumerate() {
+    let pkg_name = PathBuf::from(args.package.clone())
+        .file_stem()
+        .unwrap()
+        .to_string_lossy()
+        .to_string();
+
+    let package = args.version.open(&args.package)?;
+
+    let out_dir = args
+        .output_dir
+        .unwrap_or_else(|| format!("./out/{pkg_name}"));
+
+    std::fs::create_dir_all(&out_dir).ok();
+
+    println!("PKG {:04x}_{}", package.pkg_id(), package.patch_id());
+    for (i, e) in package.entries().iter().enumerate() {
         print!("{}/{} - ", e.file_type, e.file_subtype);
-        if e.reference != u32::MAX {
-            print!(
-                "{i} 0x{:x} - p={:x} f={} / r=0x{:x} ",
-                e.file_size,
-                (e.reference & !0x80800000) >> 13,
-                e.reference & 0x1fff,
-                e.reference
+        let ref_hash = TagHash(e.reference);
+        if ref_hash.is_pkg_file() {
+            println!(
+                "{i} 0x{:04x} - Reference {ref_hash:?} / r=0x{:x} (type={}, subtype={})",
+                e.file_size, ref_hash.0, e.file_type, e.file_subtype
             );
         } else {
-            print!("{i} 0x{:x} - ", e.file_size);
+            println!(
+                "{i} 0x{:04x} - r=0x{:x} (type={}, subtype={})",
+                e.file_size, ref_hash.0, e.file_type, e.file_subtype
+            );
         }
-        let ext = match (e.file_type, e.file_subtype) {
-            (26, 6) => {
-                println!("WWise WAVE Audio");
-                "wem".to_string()
-            }
-            (26, 7) => {
-                println!("Havok File");
-                "hkf".to_string()
-            }
-            (27, _) => {
-                println!("CriWare USM Video");
-                "usm".to_string()
-            }
-            (33, _) => {
-                println!("DirectX Bytecode Header");
-                "cso.header".to_string()
-            }
-            (32, _) => {
-                println!("Texture Header");
-                "texture.header".to_string()
-            }
-            (40, _) | (48, 1) | (48, 2) => {
-                println!("Texture Data");
-                "texture.data".to_string()
-            }
-            (41, _) => {
-                let ty = match e.file_subtype {
-                    0 => "fragment".to_string(),
-                    1 => "vertex".to_string(),
-                    6 => "compute".to_string(),
-                    u => format!("unk{u}"),
-                };
-                println!("DirectX Bytecode Data ({})", ty);
 
-                format!("cso.{ty}")
-            }
-            (8, _) => {
-                println!("8080 structure file");
-                "8080".to_string()
-            }
-            _ => {
-                println!("Unknown {}/{}", e.file_type, e.file_subtype);
-                "bin".to_string()
-            }
-        };
+        if !args.dry_run {
+            let data: Vec<u8> = match package.read_entry(i) {
+                Ok(data) => data,
+                Err(e) => {
+                    eprintln!(
+                        "Failed to extract entry {}/{}: {e}",
+                        i,
+                        package.entries().len() - 1
+                    );
+                    continue;
+                }
+            };
 
-        let data = match package.read_entry(i) {
-            Ok(data) => data,
-            Err(e) => {
-                eprintln!(
-                    "Failed to extract entry {}/{}: {e}",
-                    i,
-                    package.entries().count() - 1
-                );
-                continue;
-            }
-        };
-
-        let mut o = File::create(format!("files/{i}.{ext}"))?;
-        o.write_all(&data)?;
+            let mut o = File::create(format!(
+                "{out_dir}/{i}_{:08x}_t{}_s{}.bin",
+                e.reference, e.file_type, e.file_subtype
+            ))?;
+            o.write_all(&data)?;
+        }
     }
 
     Ok(())
