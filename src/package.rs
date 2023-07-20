@@ -26,7 +26,7 @@ pub struct UHashTableEntry {
     pub reference: TagHash,
 }
 
-#[derive(clap::ValueEnum, PartialEq, Debug, Clone)]
+#[derive(clap::ValueEnum, PartialEq, Debug, Clone, Copy)]
 pub enum PackageVersion {
     /// PS3/X360 version of Destiny (The Taken King)
     #[value(name = "d1_legacy")]
@@ -148,5 +148,40 @@ pub trait Package {
             })
             .map(|(i, e)| (i, e.clone()))
             .collect()
+    }
+}
+
+/// ! Currently only works for Pre-BL Destiny 2
+pub fn classify_file(ftype: u8, fsubtype: u8) -> String {
+    match (ftype, fsubtype) {
+        // WWise audio bank
+        (26, 5) => "bnk".to_string(),
+        // WWise audio stream
+        (26, 6) => "wem".to_string(),
+        // Havok data
+        (26, 7) => "hkf".to_string(),
+        // CriWare USM video
+        (27, _) => "usm".to_string(),
+        (32, 1) => "texture.header".to_string(),
+        (32, 2) => "texture_cube.header".to_string(),
+        (32, 4) => "vertex.header".to_string(),
+        (32, 6) => "index.header".to_string(),
+        (40, 4) => "vertex.data".to_string(),
+        (40, 6) => "index.data".to_string(),
+        (48, 1) => "texture.data".to_string(),
+        (48, 2) => "texture_cube.data".to_string(),
+        // DXBC data
+        (41, shader_type) => {
+            let ty = match shader_type {
+                0 => "fragment".to_string(),
+                1 => "vertex".to_string(),
+                6 => "compute".to_string(),
+                u => format!("unk{u}"),
+            };
+
+            format!("cso.{ty}")
+        }
+        (8, _) => "8080".to_string(),
+        _ => "bin".to_string(),
     }
 }

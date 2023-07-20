@@ -1,4 +1,5 @@
 use clap::Parser;
+use destiny_pkg::package::classify_file;
 use destiny_pkg::{PackageVersion, TagHash};
 use std::fs::File;
 use std::io::Write;
@@ -69,8 +70,14 @@ fn main() -> anyhow::Result<()> {
                 }
             };
 
+            let ext = if args.version == PackageVersion::Destiny2PreBeyondLight {
+                classify_file(e.file_type, e.file_subtype)
+            } else {
+                "bin".to_string()
+            };
+
             let mut o = File::create(format!(
-                "{out_dir}/{i}_{:08x}_t{}_s{}.bin",
+                "{out_dir}/{i}_{:08x}_t{}_s{}.{ext}",
                 e.reference, e.file_type, e.file_subtype
             ))?;
             o.write_all(&data)?;

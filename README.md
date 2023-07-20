@@ -6,7 +6,7 @@ directory where you run destinypkgtool from.
 | Version                         | Platform | Works? |
 |---------------------------------|----------|--------|
 | Destiny Legacy (The Taken King) | PS3/X360 | ✅      |
-| Destiny Legacy (The Taken King) | PS4/XONE | ❔      |
+| Destiny Legacy (The Taken King) | PS4/XONE | ❌      |
 | Destiny (Rise of Iron)          | PS4/XONE | ❌      |
 | Destiny 2 (Pre-BL)              | PC       | ✅      |
 | Destiny 2 (Beyond Light)        | PC       | ❌      |
