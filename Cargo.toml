@@ -15,3 +15,12 @@ nohash-hasher = "0.2.0"
 rayon = "1.7.0"
 clap = { version = "4.3.11", features = ["derive"] }
 clap-num = "1.0.2"
+
+[package.metadata.appimage]
+auto_link = true
+assets = ["liblinoodle.so"]
+
+[profile.release]
+opt-level = 3
+strip = "symbols"
+lto = "fat"
