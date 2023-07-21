@@ -45,14 +45,21 @@ fn main() -> anyhow::Result<()> {
     for (i, e) in package.entries().iter().enumerate() {
         print!("{}/{} - ", e.file_type, e.file_subtype);
         let ref_hash = TagHash(e.reference);
+
+        let ext = if args.version == PackageVersion::Destiny2PreBeyondLight {
+            classify_file(e.file_type, e.file_subtype)
+        } else {
+            "bin".to_string()
+        };
+
         if ref_hash.is_pkg_file() {
             println!(
-                "{i} 0x{:04x} - Reference {ref_hash:?} / r=0x{:x} (type={}, subtype={})",
+                "{i} 0x{:04x} - Reference {ref_hash:?} / r=0x{:x} (type={}, subtype={}, ext={ext})",
                 e.file_size, ref_hash.0, e.file_type, e.file_subtype
             );
         } else {
             println!(
-                "{i} 0x{:04x} - r=0x{:x} (type={}, subtype={})",
+                "{i} 0x{:04x} - r=0x{:x} (type={}, subtype={}, ext={ext})",
                 e.file_size, ref_hash.0, e.file_type, e.file_subtype
             );
         }
@@ -68,12 +75,6 @@ fn main() -> anyhow::Result<()> {
                     );
                     continue;
                 }
-            };
-
-            let ext = if args.version == PackageVersion::Destiny2PreBeyondLight {
-                classify_file(e.file_type, e.file_subtype)
-            } else {
-                "bin".to_string()
             };
 
             let mut o = File::create(format!(

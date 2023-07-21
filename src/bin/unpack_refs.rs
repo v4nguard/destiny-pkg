@@ -45,20 +45,22 @@ fn main() -> anyhow::Result<()> {
             .clone()
             .unwrap_or_else(|| format!("./out/{pkg_name}"));
 
+        let ext = if args.version == PackageVersion::Destiny2PreBeyondLight {
+            classify_file(e.file_type, e.file_subtype)
+        } else {
+            "bin".to_string()
+        };
+
         std::fs::create_dir_all(&out_dir).ok();
-        println!(
-            "{} - entry {} type {} subtype {}",
-            pkg_name, i, e.file_type, e.file_subtype
-        );
         let ref_hash = TagHash(e.reference);
         if ref_hash.is_pkg_file() {
             println!(
-                "{:04x}/{i} 0x{:04x} - Reference {ref_hash:?} / r=0x{:x} (type={}, subtype={})",
+                "{:04x}/{i} 0x{:04x} - Reference {ref_hash:?} / r=0x{:x} (type={}, subtype={}, ext={ext})",
                 p, e.file_size, ref_hash.0, e.file_type, e.file_subtype
             );
         } else {
             println!(
-                "{:04x}/{i} 0x{:04x} - r=0x{:x} (type={}, subtype={})",
+                "{:04x}/{i} 0x{:04x} - r=0x{:x} (type={}, subtype={}, ext={ext})",
                 p, e.file_size, ref_hash.0, e.file_type, e.file_subtype
             );
         }
@@ -70,12 +72,6 @@ fn main() -> anyhow::Result<()> {
                     eprintln!("Failed to extract entry {:04x}/{}: {e}", p, i,);
                     continue;
                 }
-            };
-
-            let ext = if args.version == PackageVersion::Destiny2PreBeyondLight {
-                classify_file(e.file_type, e.file_subtype)
-            } else {
-                "bin".to_string()
             };
 
             let mut o = File::create(format!(
