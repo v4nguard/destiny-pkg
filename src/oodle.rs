@@ -1,10 +1,13 @@
-use anyhow::anyhow;
 use lazy_static::lazy_static;
+use libloading::Library;
 use std::ffi::c_void;
-use std::path::Path;
 use std::ptr::null_mut;
+use tracing::info;
 
-use shared_library::dynamic_library::DynamicLibrary;
+#[cfg(unix)]
+use libloading::os::unix as ll_impl;
+#[cfg(windows)]
+use libloading::os::windows as ll_impl;
 
 type OodleLzDecompress = unsafe extern "C" fn(
     *const u8,
@@ -23,6 +26,7 @@ type OodleLzDecompress = unsafe extern "C" fn(
     i32,
 ) -> i64;
 
+#[derive(Clone, Copy)]
 pub enum OodleVersion {
     V3 = 3,
     V9 = 9,
@@ -38,8 +42,8 @@ impl OodleVersion {
 }
 
 pub struct Oodle {
-    _lib: DynamicLibrary,
-    fn_decompress: *mut OodleLzDecompress,
+    _lib: Library,
+    fn_decompress: ll_impl::Symbol<OodleLzDecompress>,
 }
 
 unsafe impl Send for Oodle {}
@@ -54,14 +58,13 @@ impl Oodle {
         #[cfg(target_os = "macos")]
         compile_error!("macOS is not supported for Oodle decompression!");
 
-        // let lib = unsafe { Library::new(lib_path)? };
-        // let fn_decompress: Symbol<'static, OodleLzDecompress> =
-        //     unsafe { lib.get(b"OodleLZ_Decompress\0")? };
-        let lib = DynamicLibrary::open(Some(Path::new(&lib_path))).map_err(|e| anyhow!("{e}"))?;
+        let lib = unsafe { Library::new(lib_path)? };
         let fn_decompress = unsafe {
-            lib.symbol("OodleLZ_Decompress")
-                .map_err(|e| anyhow!("{e}"))?
+            lib.get::<OodleLzDecompress>(b"OodleLZ_Decompress")?
+                .into_raw()
         };
+
+        info!("Successfully loaded Oodle {}", version.num());
 
         Ok(Oodle {
             _lib: lib,
@@ -71,7 +74,7 @@ impl Oodle {
 
     pub fn decompress(&self, buffer: &[u8], output_buffer: &mut [u8]) -> i64 {
         unsafe {
-            (*self.fn_decompress)(
+            (self.fn_decompress)(
                 buffer.as_ptr() as *mut u8,
                 buffer.len() as i64,
                 output_buffer.as_mut_ptr(),

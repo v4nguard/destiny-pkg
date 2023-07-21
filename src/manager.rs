@@ -1,9 +1,11 @@
 use crate::package::{Package, PackageVersion, UEntryHeader};
 use crate::TagHash;
+use binrw::{BinRead, BinReaderExt};
 use nohash_hasher::IntMap;
 use rayon::prelude::*;
 use std::collections::hash_map::Entry;
 use std::fs;
+use std::io::Cursor;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -151,5 +153,15 @@ impl PackageManager {
             .get(tag.entry_index() as usize)
             .cloned()
             .ok_or_else(|| anyhow::anyhow!("Entry does not exist in pkg {:04x}", tag.pkg_id()))
+    }
+
+    /// Read any BinRead type
+    pub fn read_tag_struct<'a, T: BinRead>(&mut self, tag: TagHash) -> anyhow::Result<T>
+    where
+        T::Args<'a>: Default + Clone,
+    {
+        let data = self.read_entry(tag.pkg_id(), tag.entry_index() as usize)?;
+        let mut cursor = Cursor::new(&data);
+        Ok(cursor.read_le()?)
     }
 }

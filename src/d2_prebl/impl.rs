@@ -129,7 +129,7 @@ impl PackageD2PreBL {
 
         let decompressed_data = if (bh.flags & 0x1) != 0 {
             let mut buffer = vec![0u8; BLOCK_SIZE];
-            let _decompressed_size = oodle::decompress_3(&block_data, &mut buffer);
+            let _decompressed_size = oodle::decompress_3(&block_data, &mut buffer)?;
             buffer
         } else {
             block_data

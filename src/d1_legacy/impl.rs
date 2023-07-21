@@ -97,7 +97,7 @@ impl PackageD1Legacy {
 
         Ok(if (bh.flags & 0x100) != 0 {
             let mut buffer = vec![0u8; BLOCK_SIZE];
-            let _decompressed_size = oodle::decompress_3(&block_data, &mut buffer);
+            let _decompressed_size = oodle::decompress_3(&block_data, &mut buffer)?;
             buffer
         } else {
             block_data
