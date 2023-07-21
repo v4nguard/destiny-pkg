@@ -1,8 +1,10 @@
+use anyhow::anyhow;
 use lazy_static::lazy_static;
 use std::ffi::c_void;
+use std::path::Path;
 use std::ptr::null_mut;
 
-use libloading::*;
+use shared_library::dynamic_library::DynamicLibrary;
 
 type OodleLzDecompress = unsafe extern "C" fn(
     *const u8,
@@ -21,38 +23,91 @@ type OodleLzDecompress = unsafe extern "C" fn(
     i32,
 ) -> i64;
 
-#[cfg(target_os = "macos")]
-compile_error!("macOS is not supported for Oodle decompression!");
-
-#[cfg(target_os = "linux")]
-const OODLE_PATH: &str = "liblinoodle.so";
-
-#[cfg(target_os = "windows")]
-const OODLE_PATH: &str = "oo2core_3_win64.dll";
-
-lazy_static! {
-    static ref OODLE_LIB: Library = unsafe { Library::new(OODLE_PATH).unwrap() };
-    static ref OODLELZ_DECOMPRESS: Symbol<'static, OodleLzDecompress> =
-        unsafe { OODLE_LIB.get(b"OodleLZ_Decompress").unwrap() };
+pub enum OodleVersion {
+    V3 = 3,
+    V9 = 9,
 }
 
-pub fn decompress(buffer: &[u8], output_buffer: &mut [u8]) -> i64 {
-    unsafe {
-        OODLELZ_DECOMPRESS(
-            buffer.as_ptr() as *mut u8,
-            buffer.len() as i64,
-            output_buffer.as_mut_ptr(),
-            output_buffer.len() as i64,
-            0,
-            0,
-            0,
-            null_mut(),
-            null_mut(),
-            null_mut(),
-            null_mut(),
-            null_mut(),
-            null_mut(),
-            3,
-        )
+impl OodleVersion {
+    pub fn num(self) -> u32 {
+        match self {
+            OodleVersion::V3 => 3,
+            OodleVersion::V9 => 9,
+        }
     }
+}
+
+pub struct Oodle {
+    _lib: DynamicLibrary,
+    fn_decompress: *mut OodleLzDecompress,
+}
+
+unsafe impl Send for Oodle {}
+unsafe impl Sync for Oodle {}
+
+impl Oodle {
+    pub fn new(version: OodleVersion) -> anyhow::Result<Oodle> {
+        #[cfg(target_os = "windows")]
+        let lib_path = format!("oo2core_{}_win64.dll", version.num());
+        #[cfg(target_os = "linux")]
+        let lib_path = format!("liblinoodle{}.so", version.num());
+        #[cfg(target_os = "macos")]
+        compile_error!("macOS is not supported for Oodle decompression!");
+
+        // let lib = unsafe { Library::new(lib_path)? };
+        // let fn_decompress: Symbol<'static, OodleLzDecompress> =
+        //     unsafe { lib.get(b"OodleLZ_Decompress\0")? };
+        let lib = DynamicLibrary::open(Some(Path::new(&lib_path))).map_err(|e| anyhow!("{e}"))?;
+        let fn_decompress = unsafe {
+            lib.symbol("OodleLZ_Decompress")
+                .map_err(|e| anyhow!("{e}"))?
+        };
+
+        Ok(Oodle {
+            _lib: lib,
+            fn_decompress,
+        })
+    }
+
+    pub fn decompress(&self, buffer: &[u8], output_buffer: &mut [u8]) -> i64 {
+        unsafe {
+            (*self.fn_decompress)(
+                buffer.as_ptr() as *mut u8,
+                buffer.len() as i64,
+                output_buffer.as_mut_ptr(),
+                output_buffer.len() as i64,
+                0,
+                0,
+                0,
+                null_mut(),
+                null_mut(),
+                null_mut(),
+                null_mut(),
+                null_mut(),
+                null_mut(),
+                3,
+            )
+        }
+    }
+}
+
+lazy_static! {
+    static ref OODLE_3: Option<Oodle> = Oodle::new(OodleVersion::V3).ok();
+    static ref OODLE_9: Option<Oodle> = Oodle::new(OodleVersion::V9).ok();
+}
+
+/// Fails if the library isn't loaded
+pub fn decompress_3(buffer: &[u8], output_buffer: &mut [u8]) -> anyhow::Result<i64> {
+    OODLE_3
+        .as_ref()
+        .map(|o| o.decompress(buffer, output_buffer))
+        .ok_or_else(|| anyhow::anyhow!("Oodle 3 isn't loaded!"))
+}
+
+/// Fails if the library isn't loaded
+pub fn decompress_9(buffer: &[u8], output_buffer: &mut [u8]) -> anyhow::Result<i64> {
+    OODLE_9
+        .as_ref()
+        .map(|o| o.decompress(buffer, output_buffer))
+        .ok_or_else(|| anyhow::anyhow!("Oodle 9 isn't loaded!"))
 }

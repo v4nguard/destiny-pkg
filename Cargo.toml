@@ -10,11 +10,12 @@ aes = "0.8"
 aes-gcm = "0.10"
 binrw = "0.11"
 lazy_static = "1.4.0"
-libloading = "0.8"
 nohash-hasher = "0.2.0"
 rayon = "1.7.0"
 clap = { version = "4.3.11", features = ["derive"] }
 clap-num = "1.0.2"
+tracing = "0.1.37"
+shared_library = "0.1.9"
 
 [package.metadata.appimage]
 auto_link = true
