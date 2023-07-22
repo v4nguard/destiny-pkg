@@ -1,4 +1,5 @@
 use crate::d1_legacy::PackageD1Legacy;
+use crate::d2_beta::PackageD2Beta;
 use crate::{PackageD2PreBL, TagHash};
 use anyhow::{anyhow, ensure};
 use std::io::{Read, Seek};
@@ -36,6 +37,10 @@ pub enum PackageVersion {
     #[value(name = "d1")]
     Destiny,
 
+    /// The Destiny 2 Beta
+    #[value(name = "d2_beta")]
+    Destiny2Beta,
+
     /// The last version of Destiny before Beyond Light (Shadowkeep/Season of Arrivals)
     #[value(name = "d2_prebl")]
     Destiny2PreBeyondLight,
@@ -52,6 +57,7 @@ impl PackageVersion {
             PackageVersion::Destiny => {
                 anyhow::bail!("The latest version of Destiny is not supported yet")
             }
+            PackageVersion::Destiny2Beta => Arc::new(PackageD2Beta::open(path)?),
             PackageVersion::Destiny2PreBeyondLight => Arc::new(PackageD2PreBL::open(path)?),
             PackageVersion::Destiny2 => {
                 anyhow::bail!("The latest version of Destiny 2 is not supported yet")

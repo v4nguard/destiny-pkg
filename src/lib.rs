@@ -2,6 +2,7 @@ extern crate core;
 
 mod crypto;
 mod d1_legacy;
+mod d2_beta;
 mod d2_prebl;
 pub mod manager;
 mod oodle;
