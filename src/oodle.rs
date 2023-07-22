@@ -104,7 +104,7 @@ pub fn decompress_3(buffer: &[u8], output_buffer: &mut [u8]) -> anyhow::Result<i
     OODLE_3
         .as_ref()
         .map(|o| o.decompress(buffer, output_buffer))
-        .ok_or_else(|| anyhow::anyhow!("Oodle 3 isn't loaded!"))
+        .ok_or_else(|| panic!("Oodle 3 isn't loaded!"))
 }
 
 /// Fails if the library isn't loaded
@@ -112,5 +112,5 @@ pub fn decompress_9(buffer: &[u8], output_buffer: &mut [u8]) -> anyhow::Result<i
     OODLE_9
         .as_ref()
         .map(|o| o.decompress(buffer, output_buffer))
-        .ok_or_else(|| anyhow::anyhow!("Oodle 9 isn't loaded!"))
+        .ok_or_else(|| panic!("Oodle 9 isn't loaded!"))
 }

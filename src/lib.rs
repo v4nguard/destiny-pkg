@@ -8,6 +8,7 @@ pub mod manager;
 mod oodle;
 pub mod package;
 pub mod tag;
+mod d2_witchqueen;
 
 pub use d2_prebl::PackageD2PreBL;
 

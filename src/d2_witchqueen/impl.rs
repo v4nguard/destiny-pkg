@@ -11,14 +11,14 @@ use binrw::{BinReaderExt, Endian, VecArgs};
 use nohash_hasher::IntMap;
 
 use crate::crypto::PkgGcmState;
-use crate::d2_beta::structs::{BlockHeader, EntryHeader, PackageHeader};
+use crate::d2_witchqueen::structs::{BlockHeader, EntryHeader, PackageHeader};
 use crate::package::{Package, ReadSeek, UEntryHeader, UHashTableEntry, BLOCK_CACHE_SIZE};
 use crate::{oodle, PackageVersion};
 
 pub const BLOCK_SIZE: usize = 0x40000;
 
 // TODO(cohae): Ensure Send+Sync so packages can be multithreaded, should be enforced on `Package` as well
-pub struct PackageD2Beta {
+pub struct PackageD2WitchQueen {
     gcm: RefCell<PkgGcmState>,
 
     pub header: PackageHeader,
@@ -33,8 +33,8 @@ pub struct PackageD2Beta {
     block_cache: RefCell<IntMap<usize, (usize, Arc<Vec<u8>>)>>,
 }
 
-impl PackageD2Beta {
-    pub fn open(path: &str) -> anyhow::Result<PackageD2Beta> {
+impl PackageD2WitchQueen {
+    pub fn open(path: &str) -> anyhow::Result<PackageD2WitchQueen> {
         let reader = BufReader::new(File::open(path)?);
 
         Self::from_reader(path, reader)
@@ -43,7 +43,7 @@ impl PackageD2Beta {
     pub fn from_reader<R: ReadSeek + 'static>(
         path: &str,
         reader: R,
-    ) -> anyhow::Result<PackageD2Beta> {
+    ) -> anyhow::Result<PackageD2WitchQueen> {
         let mut reader = reader;
         let header: PackageHeader = reader.read_le()?;
 
@@ -62,12 +62,12 @@ impl PackageD2Beta {
         let last_underscore_pos = path.rfind('_').unwrap();
         let path_base = path[..last_underscore_pos].to_owned();
 
-        Ok(PackageD2Beta {
+        Ok(PackageD2WitchQueen {
             path_base,
             reader: RefCell::new(Box::new(reader)),
             gcm: RefCell::new(PkgGcmState::new(
                 header.pkg_id,
-                PackageVersion::Destiny2Beta,
+                PackageVersion::Destiny2WitchQueen,
             )),
             header,
             entries,
@@ -114,7 +114,7 @@ impl PackageD2Beta {
 
         let decompressed_data = if (bh.flags & 0x1) != 0 {
             let mut buffer = vec![0u8; BLOCK_SIZE];
-            let _decompressed_size = oodle::decompress_3(&block_data, &mut buffer)?;
+            let _decompressed_size = oodle::decompress_9(&block_data, &mut buffer)?;
             buffer
         } else {
             block_data
@@ -124,7 +124,7 @@ impl PackageD2Beta {
     }
 }
 
-impl Package for PackageD2Beta {
+impl Package for PackageD2WitchQueen {
     fn endianness(&self) -> Endian {
         Endian::Little // TODO(cohae): Not necessarily
     }

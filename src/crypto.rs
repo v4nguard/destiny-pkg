@@ -1,3 +1,4 @@
+use crate::PackageVersion;
 use aes_gcm::aead::AeadMutInPlace;
 use aes_gcm::{Aes128Gcm, KeyInit};
 
@@ -20,21 +21,27 @@ pub struct PkgGcmState {
 }
 
 impl PkgGcmState {
-    pub fn new(pkg_id: u16) -> PkgGcmState {
+    pub fn new(pkg_id: u16, version: PackageVersion) -> PkgGcmState {
         let mut g = PkgGcmState {
             nonce: AES_NONCE_BASE,
             cipher_0: Aes128Gcm::new(&AES_KEY_0.into()),
             cipher_1: Aes128Gcm::new(&AES_KEY_1.into()),
         };
 
-        g.shift_nonce(pkg_id);
+        g.shift_nonce(pkg_id, version);
 
         g
     }
 
-    fn shift_nonce(&mut self, pkg_id: u16) {
+    fn shift_nonce(&mut self, pkg_id: u16, version: PackageVersion) {
         self.nonce[0] ^= (pkg_id >> 8) as u8;
-        self.nonce[1] ^= 0x26;
+        match version {
+            PackageVersion::Destiny2WitchQueen => self.nonce[1] = 0xea,
+            PackageVersion::Destiny2Beta | PackageVersion::Destiny2PreBeyondLight => {
+                self.nonce[1] = 0xf9
+            }
+            u => panic!("Unsupported crypto for {u:?}"),
+        }
         self.nonce[11] ^= pkg_id as u8;
     }
 

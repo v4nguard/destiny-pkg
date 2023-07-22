@@ -1,7 +1,7 @@
 use crate::crypto::PkgGcmState;
 use crate::d2_prebl::structs::{BlockHeader, EntryHeader, HashTableEntry, PackageHeader};
-use crate::oodle;
 use crate::package::{Package, ReadSeek, UEntryHeader, UHashTableEntry, BLOCK_CACHE_SIZE};
+use crate::{oodle, PackageVersion};
 use anyhow::Context;
 use binrw::{BinReaderExt, Endian, VecArgs};
 use nohash_hasher::IntMap;
@@ -82,7 +82,10 @@ impl PackageD2PreBL {
         Ok(PackageD2PreBL {
             path_base,
             reader: RefCell::new(Box::new(reader)),
-            gcm: RefCell::new(PkgGcmState::new(header.pkg_id)),
+            gcm: RefCell::new(PkgGcmState::new(
+                header.pkg_id,
+                PackageVersion::Destiny2PreBeyondLight,
+            )),
             header,
             entries,
             blocks,

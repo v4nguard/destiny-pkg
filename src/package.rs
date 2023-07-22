@@ -1,5 +1,6 @@
 use crate::d1_legacy::PackageD1Legacy;
 use crate::d2_beta::PackageD2Beta;
+use crate::d2_witchqueen::PackageD2WitchQueen;
 use crate::{PackageD2PreBL, TagHash};
 use anyhow::{anyhow, ensure};
 use std::io::{Read, Seek};
@@ -37,7 +38,7 @@ pub enum PackageVersion {
     #[value(name = "d1")]
     Destiny,
 
-    /// The Destiny 2 Beta
+    /// Destiny 2 Beta
     #[value(name = "d2_beta")]
     Destiny2Beta,
 
@@ -45,7 +46,15 @@ pub enum PackageVersion {
     #[value(name = "d2_prebl")]
     Destiny2PreBeyondLight,
 
-    /// The latest version of Destiny 2 (currently Lightfall)
+    /// Destiny 2 (Witch Queen/Season of the Seraph)
+    #[value(name = "d2_witchqueen")]
+    Destiny2WitchQueen,
+
+    /// Destiny 2 (Lightfall)
+    #[value(name = "d2_lightfall")]
+    Destiny2Lightfall,
+
+    /// Alias for d2_lightfall
     #[value(name = "d2")]
     Destiny2,
 }
@@ -59,9 +68,9 @@ impl PackageVersion {
             }
             PackageVersion::Destiny2Beta => Arc::new(PackageD2Beta::open(path)?),
             PackageVersion::Destiny2PreBeyondLight => Arc::new(PackageD2PreBL::open(path)?),
-            PackageVersion::Destiny2 => {
-                anyhow::bail!("The latest version of Destiny 2 is not supported yet")
-            }
+            PackageVersion::Destiny2WitchQueen
+            | PackageVersion::Destiny2Lightfall
+            | PackageVersion::Destiny2 => Arc::new(PackageD2WitchQueen::open(path)?),
         })
     }
 }

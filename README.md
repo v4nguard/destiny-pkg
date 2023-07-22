@@ -11,5 +11,5 @@ directory where you run destinypkgtool from.
 | Destiny 2 (Beta)                | PC       | ✅      |
 | Destiny 2 (Pre-BL)              | PC       | ✅      |
 | Destiny 2 (Beyond Light)        | PC       | ❌      |
-| Destiny 2 (Witch Queen)         | PC       | ❌      |
-| Destiny 2 (Lightfall)           | PC       | ❌      |
+| Destiny 2 (Witch Queen)         | PC       | ✅      |
+| Destiny 2 (Lightfall)           | PC       | ✅      |
