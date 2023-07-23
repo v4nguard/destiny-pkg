@@ -11,14 +11,14 @@ use binrw::{BinReaderExt, Endian, VecArgs};
 use nohash_hasher::IntMap;
 
 use crate::crypto::PkgGcmState;
-use crate::d2_witchqueen::structs::{BlockHeader, EntryHeader, PackageHeader};
+use crate::d2_beyondlight::structs::{BlockHeader, EntryHeader, PackageHeader};
 use crate::package::{Package, ReadSeek, UEntryHeader, UHashTableEntry, BLOCK_CACHE_SIZE};
 use crate::{oodle, PackageVersion};
 
 pub const BLOCK_SIZE: usize = 0x40000;
 
 // TODO(cohae): Ensure Send+Sync so packages can be multithreaded, should be enforced on `Package` as well
-pub struct PackageD2WitchQueen {
+pub struct PackageD2BeyondLight {
     gcm: RefCell<PkgGcmState>,
 
     pub header: PackageHeader,
@@ -33,8 +33,8 @@ pub struct PackageD2WitchQueen {
     block_cache: RefCell<IntMap<usize, (usize, Arc<Vec<u8>>)>>,
 }
 
-impl PackageD2WitchQueen {
-    pub fn open(path: &str) -> anyhow::Result<PackageD2WitchQueen> {
+impl PackageD2BeyondLight {
+    pub fn open(path: &str) -> anyhow::Result<PackageD2BeyondLight> {
         let reader = BufReader::new(File::open(path)?);
 
         Self::from_reader(path, reader)
@@ -43,7 +43,7 @@ impl PackageD2WitchQueen {
     pub fn from_reader<R: ReadSeek + 'static>(
         path: &str,
         reader: R,
-    ) -> anyhow::Result<PackageD2WitchQueen> {
+    ) -> anyhow::Result<PackageD2BeyondLight> {
         let mut reader = reader;
         let header: PackageHeader = reader.read_le()?;
 
@@ -62,7 +62,7 @@ impl PackageD2WitchQueen {
         let last_underscore_pos = path.rfind('_').unwrap();
         let path_base = path[..last_underscore_pos].to_owned();
 
-        Ok(PackageD2WitchQueen {
+        Ok(PackageD2BeyondLight {
             path_base,
             reader: RefCell::new(Box::new(reader)),
             gcm: RefCell::new(PkgGcmState::new(
@@ -124,7 +124,7 @@ impl PackageD2WitchQueen {
     }
 }
 
-impl Package for PackageD2WitchQueen {
+impl Package for PackageD2BeyondLight {
     fn endianness(&self) -> Endian {
         Endian::Little // TODO(cohae): Not necessarily
     }

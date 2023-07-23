@@ -1,14 +1,16 @@
 extern crate core;
 
 mod crypto;
+mod oodle;
+
 mod d1_legacy;
 mod d2_beta;
+mod d2_beyondlight;
 mod d2_prebl;
+
 pub mod manager;
-mod oodle;
 pub mod package;
 pub mod tag;
-mod d2_witchqueen;
 
 pub use d2_prebl::PackageD2PreBL;
 
