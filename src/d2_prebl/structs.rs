@@ -1,5 +1,4 @@
-
-use binrw::{BinRead};
+use binrw::BinRead;
 use std::fmt::Debug;
 use std::io::SeekFrom;
 

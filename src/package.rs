@@ -68,14 +68,14 @@ impl PackageVersion {
         Ok(match self {
             PackageVersion::DestinyLegacy => Arc::new(PackageD1Legacy::open(path)?),
             PackageVersion::Destiny => {
-                anyhow::bail!("The latest version of Destiny is not supported yet")
+                anyhow::bail!("The latest version of Destiny 1 is not supported yet")
             }
             PackageVersion::Destiny2Beta => Arc::new(PackageD2Beta::open(path)?),
             PackageVersion::Destiny2PreBeyondLight => Arc::new(PackageD2PreBL::open(path)?),
             PackageVersion::Destiny2BeyondLight
             | PackageVersion::Destiny2WitchQueen
             | PackageVersion::Destiny2Lightfall
-            | PackageVersion::Destiny2 => Arc::new(PackageD2BeyondLight::open(path)?),
+            | PackageVersion::Destiny2 => Arc::new(PackageD2BeyondLight::open(path, *self)?),
         })
     }
 }
