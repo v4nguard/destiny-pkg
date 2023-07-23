@@ -1,5 +1,6 @@
 use crate::crypto::PkgGcmState;
-use crate::d2_prebl::structs::{BlockHeader, EntryHeader, HashTableEntry, PackageHeader};
+use crate::d2_prebl::structs::PackageHeader;
+use crate::d2_shared::{BlockHeader, EntryHeader, HashTableEntry};
 use crate::package::{Package, ReadSeek, UEntryHeader, UHashTableEntry, BLOCK_CACHE_SIZE};
 use crate::{oodle, PackageVersion};
 use anyhow::Context;

@@ -11,7 +11,8 @@ use binrw::{BinReaderExt, Endian, VecArgs};
 use nohash_hasher::IntMap;
 
 use crate::crypto::PkgGcmState;
-use crate::d2_beta::structs::{BlockHeader, EntryHeader, PackageHeader};
+use crate::d2_beta::structs::PackageHeader;
+use crate::d2_shared::{BlockHeader, EntryHeader};
 use crate::package::{Package, ReadSeek, UEntryHeader, UHashTableEntry, BLOCK_CACHE_SIZE};
 use crate::{oodle, PackageVersion};
 
