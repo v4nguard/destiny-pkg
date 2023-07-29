@@ -70,6 +70,7 @@ pub struct PackageCommonD2 {
     /// Used for purging old blocks
     pub(crate) block_counter: AtomicUsize,
     pub(crate) block_cache: RefCell<IntMap<usize, (usize, Arc<Vec<u8>>)>>,
+    pub(crate) file_handles: RefCell<IntMap<usize, File>>,
 }
 
 impl PackageCommonD2 {
@@ -97,6 +98,7 @@ impl PackageCommonD2 {
             path_base,
             block_counter: AtomicUsize::default(),
             block_cache: Default::default(),
+            file_handles: Default::default(),
         })
     }
 
@@ -110,14 +112,25 @@ impl PackageCommonD2 {
                 .seek(SeekFrom::Start(bh.offset as u64))?;
             self.reader.borrow_mut().read_exact(&mut data)?;
         } else {
-            let mut f =
-                File::open(format!("{}_{}.pkg", self.path_base, bh.patch_id)).context(format!(
-                    "Failed to open package file {}_{}.pkg",
-                    self.path_base, bh.patch_id
-                ))?;
+            match self.file_handles.borrow_mut().entry(bh.patch_id as _) {
+                Entry::Occupied(mut f) => {
+                    let f = f.get_mut();
+                    f.seek(SeekFrom::Start(bh.offset as u64))?;
+                    f.read_exact(&mut data)?;
+                }
+                Entry::Vacant(e) => {
+                    let f = File::open(format!("{}_{}.pkg", self.path_base, bh.patch_id)).context(
+                        format!(
+                            "Failed to open package file {}_{}.pkg",
+                            self.path_base, bh.patch_id
+                        ),
+                    )?;
 
-            f.seek(SeekFrom::Start(bh.offset as u64))?;
-            f.read_exact(&mut data)?;
+                    let f = e.insert(f);
+                    f.seek(SeekFrom::Start(bh.offset as u64))?;
+                    f.read_exact(&mut data)?;
+                }
+            };
         };
 
         Ok(Cow::Owned(data))

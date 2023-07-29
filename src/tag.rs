@@ -24,7 +24,11 @@ impl From<(u16, u16)> for TagHash {
 
 impl TagHash {
     pub fn new(pkg_id: u16, entry: u16) -> TagHash {
-        TagHash(0x80800000 | ((pkg_id as u32) << 13) | entry as u32)
+        TagHash(
+            0x80800000u32
+                .wrapping_add((pkg_id as u32) << 13)
+                .wrapping_add(entry as u32 % 8192),
+        )
     }
 
     pub fn is_valid(&self) -> bool {

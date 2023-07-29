@@ -34,7 +34,6 @@ impl PkgGcmState {
     }
 
     fn shift_nonce(&mut self, pkg_id: u16, version: PackageVersion) {
-        println!("v{version:?} pkg {pkg_id:04x}");
         self.nonce[0] ^= (pkg_id >> 8) as u8;
         match version {
             PackageVersion::Destiny2BeyondLight
