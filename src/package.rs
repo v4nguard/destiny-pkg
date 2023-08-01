@@ -101,6 +101,7 @@ pub trait Package {
 
     /// Reads the entire specified entry's data
     fn read_entry(&self, index: usize) -> anyhow::Result<Vec<u8>> {
+        let _span = tracing::debug_span!("Package::read_entry").entered();
         let entry = self
             .entry(index)
             .ok_or(anyhow!("Entry index is out of range"))?;

@@ -8,6 +8,7 @@ use std::fs;
 use std::io::Cursor;
 use std::path::Path;
 use std::sync::Arc;
+use tracing::debug_span;
 
 #[derive(Clone, Copy)]
 pub struct HashTableEntryShort {
@@ -37,32 +38,39 @@ impl PackageManager {
         let path = packages_dir.as_ref();
         // Every package in the given directory, including every patch
         let mut packages_all = vec![];
-        for entry in fs::read_dir(path)? {
-            let entry = entry?;
-            let path = entry.path();
-            if path.is_file() {
-                packages_all.push(path.to_string_lossy().to_string());
+        debug_span!("Discover packages in directory").in_scope(|| -> anyhow::Result<()> {
+            for entry in fs::read_dir(path)? {
+                let entry = entry?;
+                let path = entry.path();
+                if path.is_file() {
+                    packages_all.push(path.to_string_lossy().to_string());
+                }
             }
-        }
+
+            Ok(())
+        })?;
 
         packages_all.sort();
 
         // All the latest packages
         let mut packages: IntMap<u16, String> = Default::default();
-        for p in packages_all {
-            let parts: Vec<&str> = p.split("_").collect();
-            if let Some(Ok(pkg_id)) = parts
-                .get(parts.len() - 2)
-                .map(|s| u16::from_str_radix(s, 16))
-            {
-                packages.insert(pkg_id, p);
-            } else {
-                // Take the long route and extract the package ID from the header
-                if let Ok(pkg) = version.open(&p) {
-                    packages.insert(pkg.pkg_id(), p);
+        debug_span!("Filter latest packages").in_scope(|| {
+            for p in packages_all {
+                let parts: Vec<&str> = p.split("_").collect();
+                if let Some(Ok(pkg_id)) = parts
+                    .get(parts.len() - 2)
+                    .map(|s| u16::from_str_radix(s, 16))
+                {
+                    packages.insert(pkg_id, p);
+                } else {
+                    let _span = debug_span!("Open package to find package ID").entered();
+                    // Take the long route and extract the package ID from the header
+                    if let Ok(pkg) = version.open(&p) {
+                        packages.insert(pkg.pkg_id(), p);
+                    }
                 }
             }
-        }
+        });
 
         let mut s = Self {
             package_paths: packages,
@@ -84,6 +92,7 @@ impl PackageManager {
             .package_paths
             .par_iter()
             .map(|(_, p)| {
+                let _span = debug_span!("Read package tables", package = p).entered();
                 let pkg = self.version.open(p).unwrap();
                 let entries = (pkg.pkg_id(), pkg.entries());
 
