@@ -50,6 +50,7 @@ impl PackageD2Beta {
                 header.patch_id,
                 entries,
                 blocks,
+                vec![],
                 path.to_string(),
             )?,
             header,
@@ -71,7 +72,7 @@ impl Package for PackageD2Beta {
         self.header.patch_id
     }
 
-    fn hashes64(&self) -> Vec<UHashTableEntry> {
+    fn hash64_table(&self) -> Vec<UHashTableEntry> {
         // TODO(cohae): Fix hashtable
         vec![]
     }

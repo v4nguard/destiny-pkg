@@ -89,7 +89,9 @@ pub trait Package {
 
     /// Every hash64 in this package.
     /// Does not apply to Destiny 1
-    fn hashes64(&self) -> Vec<UHashTableEntry>;
+    fn hash64_table(&self) -> Vec<UHashTableEntry>;
+
+    // fn translate_hash64(&self, hash: u64) -> Option<TagHash>;
 
     fn entries(&self) -> Vec<UEntryHeader>;
 
@@ -150,6 +152,19 @@ pub trait Package {
         ensure!(tag.pkg_id() == self.pkg_id());
         self.read_entry(tag.entry_index() as _)
     }
+
+    // /// Reads the entire specified entry's data
+    // /// Hash needs to be in this package
+    // fn read_hash64(&self, hash: u64) -> anyhow::Result<Vec<u8>> {
+    //     let tag = self.translate_hash64(hash).ok_or_else(|| {
+    //         anyhow::anyhow!(
+    //             "Could not find hash 0x{hash:016x} in this package ({:04x})",
+    //             self.pkg_id()
+    //         )
+    //     })?;
+    //     ensure!(tag.pkg_id() == self.pkg_id());
+    //     self.read_entry(tag.entry_index() as _)
+    // }
 
     fn get_all_by_reference(&self, reference: u32) -> Vec<(usize, UEntryHeader)> {
         self.entries()

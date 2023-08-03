@@ -1,5 +1,6 @@
 use crate::package::{Package, PackageVersion, UEntryHeader};
 use crate::TagHash;
+use anyhow::anyhow;
 use binrw::{BinRead, BinReaderExt};
 use nohash_hasher::IntMap;
 use rayon::prelude::*;
@@ -20,7 +21,6 @@ pub struct PackageManager {
     pub package_paths: IntMap<u16, String>,
     pub version: PackageVersion,
 
-    // TODO(cohae): Should these be grouped by package?
     /// Every entry
     pub package_entry_index: IntMap<u16, Vec<UEntryHeader>>,
     pub hash64_table: IntMap<u64, HashTableEntryShort>,
@@ -97,7 +97,7 @@ impl PackageManager {
                 let entries = (pkg.pkg_id(), pkg.entries());
 
                 let hashes = (pkg
-                    .hashes64()
+                    .hash64_table()
                     .iter()
                     .map(|h| {
                         (
@@ -156,6 +156,15 @@ impl PackageManager {
         self.read_entry(tag.pkg_id(), tag.entry_index() as usize)
     }
 
+    pub fn read_hash(&mut self, hash: u64) -> anyhow::Result<Vec<u8>> {
+        let tag = self
+            .hash64_table
+            .get(&hash)
+            .ok_or_else(|| anyhow!("Hash not found"))?
+            .hash32;
+        self.read_entry(tag.pkg_id(), tag.entry_index() as usize)
+    }
+
     pub fn get_entry_by_tag(&mut self, tag: TagHash) -> anyhow::Result<UEntryHeader> {
         self.get_or_load_pkg(tag.pkg_id())?
             .entries()
@@ -170,6 +179,16 @@ impl PackageManager {
         T::Args<'a>: Default + Clone,
     {
         let data = self.read_entry(tag.pkg_id(), tag.entry_index() as usize)?;
+        let mut cursor = Cursor::new(&data);
+        Ok(cursor.read_le()?)
+    }
+
+    /// Read any BinRead type
+    pub fn read_hash_struct<'a, T: BinRead>(&mut self, hash: u64) -> anyhow::Result<T>
+    where
+        T::Args<'a>: Default + Clone,
+    {
+        let data = self.read_hash(hash)?;
         let mut cursor = Cursor::new(&data);
         Ok(cursor.read_le()?)
     }

@@ -81,6 +81,7 @@ impl PackageCommonD2 {
         patch_id: u16,
         entries: Vec<EntryHeader>,
         blocks: Vec<BlockHeader>,
+        hashes: Vec<HashTableEntry>,
         path: String,
     ) -> anyhow::Result<PackageCommonD2> {
         let last_underscore_pos = path.rfind('_').unwrap();
@@ -93,7 +94,7 @@ impl PackageCommonD2 {
             gcm: RefCell::new(PkgGcmState::new(pkg_id, version)),
             entries,
             blocks,
-            hashes: vec![], // TODO(cohae): fix hash tables
+            hashes,
             reader: RefCell::new(Box::new(reader)),
             path_base,
             block_counter: AtomicUsize::default(),

@@ -118,7 +118,7 @@ impl Package for PackageD1Legacy {
         self.header.patch_id
     }
 
-    fn hashes64(&self) -> Vec<UHashTableEntry> {
+    fn hash64_table(&self) -> Vec<UHashTableEntry> {
         vec![]
     }
 

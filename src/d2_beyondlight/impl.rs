@@ -4,11 +4,12 @@ use std::io::{BufReader, SeekFrom};
 use std::sync::Arc;
 
 use binrw::{BinReaderExt, Endian, VecArgs};
+use tracing::warn;
 
 use crate::d2_beyondlight::structs::PackageHeader;
 use crate::d2_shared::PackageCommonD2;
 use crate::package::{Package, ReadSeek, UEntryHeader, UHashTableEntry};
-use crate::PackageVersion;
+use crate::{PackageVersion, TagHash};
 
 // TODO(cohae): Ensure Send+Sync so packages can be multithreaded, should be enforced on `Package` as well
 pub struct PackageD2BeyondLight {
@@ -51,6 +52,7 @@ impl PackageD2BeyondLight {
                 header.patch_id,
                 entries,
                 blocks,
+                vec![],
                 path.to_string(),
             )?,
             header,
@@ -72,7 +74,7 @@ impl Package for PackageD2BeyondLight {
         self.header.patch_id
     }
 
-    fn hashes64(&self) -> Vec<UHashTableEntry> {
+    fn hash64_table(&self) -> Vec<UHashTableEntry> {
         // TODO(cohae): Fix hashtable
         vec![]
     }

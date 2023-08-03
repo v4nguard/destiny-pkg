@@ -6,7 +6,7 @@ use std::sync::Arc;
 use binrw::{BinReaderExt, Endian, VecArgs};
 
 use crate::d2_prebl::structs::PackageHeader;
-use crate::d2_shared::PackageCommonD2;
+use crate::d2_shared::{HashTableEntry, PackageCommonD2};
 use crate::package::{Package, ReadSeek, UEntryHeader, UHashTableEntry};
 use crate::PackageVersion;
 
@@ -47,6 +47,19 @@ impl PackageD2PreBL {
             inner: (),
         })?;
 
+        let hashes: Vec<HashTableEntry> = if header.unkf0_table_offset != 0 {
+            reader.seek(SeekFrom::Start((header.unkf0_table_offset + 48) as _))?;
+            let h64_table_size: u64 = reader.read_le()?;
+            let real_h64_table_offset: u64 = reader.read_le()?;
+            reader.seek(SeekFrom::Current(-8 + real_h64_table_offset as i64 + 16))?;
+            reader.read_le_args(VecArgs {
+                count: h64_table_size as _,
+                inner: (),
+            })?
+        } else {
+            vec![]
+        };
+
         Ok(PackageD2PreBL {
             common: PackageCommonD2::new(
                 reader,
@@ -55,6 +68,7 @@ impl PackageD2PreBL {
                 header.patch_id,
                 entries,
                 blocks,
+                hashes,
                 path.to_string(),
             )?,
             header,
@@ -76,9 +90,16 @@ impl Package for PackageD2PreBL {
         self.header.patch_id
     }
 
-    fn hashes64(&self) -> Vec<UHashTableEntry> {
-        // TODO(cohae): Fix hashtable
-        vec![]
+    fn hash64_table(&self) -> Vec<UHashTableEntry> {
+        self.common
+            .hashes
+            .iter()
+            .map(|h| UHashTableEntry {
+                hash64: h.hash64,
+                hash32: h.hash32,
+                reference: h.reference,
+            })
+            .collect()
     }
 
     fn entries(&self) -> Vec<UEntryHeader> {
