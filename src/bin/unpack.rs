@@ -1,5 +1,5 @@
 use clap::Parser;
-use destiny_pkg::package::classify_file;
+use destiny_pkg::package::classify_file_prebl;
 use destiny_pkg::{PackageVersion, TagHash};
 use std::fs::File;
 use std::io::Write;
@@ -47,7 +47,7 @@ fn main() -> anyhow::Result<()> {
         let ref_hash = TagHash(e.reference);
 
         let ext = if args.version == PackageVersion::Destiny2PreBeyondLight {
-            classify_file(e.file_type, e.file_subtype)
+            classify_file_prebl(e.file_type, e.file_subtype)
         } else {
             "bin".to_string()
         };

@@ -1,4 +1,5 @@
 use crate::package::{Package, PackageVersion, UEntryHeader};
+use crate::tag::TagHash64;
 use crate::TagHash;
 use anyhow::anyhow;
 use binrw::{BinRead, BinReaderExt};
@@ -120,15 +121,15 @@ impl PackageManager {
         println!("Loaded {} packages", self.package_entry_index.len());
     }
 
-    pub fn get_all_by_reference(&self, reference: u32) -> Vec<(u16, usize, UEntryHeader)> {
+    pub fn get_all_by_reference(&self, reference: u32) -> Vec<(TagHash, UEntryHeader)> {
         self.package_entry_index
             .par_iter()
             .map(|(p, e)| {
                 e.iter()
                     .enumerate()
                     .filter(|(_, e)| e.reference == reference)
-                    .map(|(i, e)| (*p, i, e.clone()))
-                    .collect::<Vec<(u16, usize, UEntryHeader)>>()
+                    .map(|(i, e)| (TagHash::new(*p, i as _), e.clone()))
+                    .collect::<Vec<(TagHash, UEntryHeader)>>()
             })
             .flatten()
             .collect()
@@ -148,24 +149,26 @@ impl PackageManager {
         })
     }
 
-    pub fn read_entry(&mut self, pkg_id: u16, index: usize) -> anyhow::Result<Vec<u8>> {
-        Ok(self.get_or_load_pkg(pkg_id)?.read_entry(index)?.to_vec())
+    pub fn read_tag(&mut self, tag: impl Into<TagHash>) -> anyhow::Result<Vec<u8>> {
+        let tag = tag.into();
+        Ok(self
+            .get_or_load_pkg(tag.pkg_id())?
+            .read_entry(tag.entry_index() as _)?
+            .to_vec())
     }
 
-    pub fn read_tag(&mut self, tag: TagHash) -> anyhow::Result<Vec<u8>> {
-        self.read_entry(tag.pkg_id(), tag.entry_index() as usize)
-    }
-
-    pub fn read_hash(&mut self, hash: u64) -> anyhow::Result<Vec<u8>> {
+    pub fn read_hash(&mut self, hash: impl Into<TagHash64>) -> anyhow::Result<Vec<u8>> {
+        let hash = hash.into();
         let tag = self
             .hash64_table
-            .get(&hash)
+            .get(&hash.0)
             .ok_or_else(|| anyhow!("Hash not found"))?
             .hash32;
-        self.read_entry(tag.pkg_id(), tag.entry_index() as usize)
+        self.read_tag(tag)
     }
 
-    pub fn get_entry_by_tag(&mut self, tag: TagHash) -> anyhow::Result<UEntryHeader> {
+    pub fn get_entry(&mut self, tag: impl Into<TagHash>) -> anyhow::Result<UEntryHeader> {
+        let tag = tag.into();
         self.get_or_load_pkg(tag.pkg_id())?
             .entries()
             .get(tag.entry_index() as usize)
@@ -174,17 +177,21 @@ impl PackageManager {
     }
 
     /// Read any BinRead type
-    pub fn read_tag_struct<'a, T: BinRead>(&mut self, tag: TagHash) -> anyhow::Result<T>
+    pub fn read_tag_struct<'a, T: BinRead>(&mut self, tag: impl Into<TagHash>) -> anyhow::Result<T>
     where
         T::Args<'a>: Default + Clone,
     {
-        let data = self.read_entry(tag.pkg_id(), tag.entry_index() as usize)?;
+        let tag = tag.into();
+        let data = self.read_tag(tag)?;
         let mut cursor = Cursor::new(&data);
         Ok(cursor.read_le()?)
     }
 
     /// Read any BinRead type
-    pub fn read_hash_struct<'a, T: BinRead>(&mut self, hash: u64) -> anyhow::Result<T>
+    pub fn read_hash_struct<'a, T: BinRead>(
+        &mut self,
+        hash: impl Into<TagHash64>,
+    ) -> anyhow::Result<T>
     where
         T::Args<'a>: Default + Clone,
     {

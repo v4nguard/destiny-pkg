@@ -188,7 +188,7 @@ pub trait Package {
 }
 
 /// ! Currently only works for Pre-BL Destiny 2
-pub fn classify_file(ftype: u8, fsubtype: u8) -> String {
+pub fn classify_file_prebl(ftype: u8, fsubtype: u8) -> String {
     match (ftype, fsubtype) {
         // WWise audio bank
         (26, 5) => "bnk".to_string(),

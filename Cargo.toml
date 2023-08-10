@@ -1,6 +1,6 @@
 [package]
 name = "destiny-pkg"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 authors = ["Lucas Cohaereo <cohaereo@protonmail.com>"]
 
@@ -25,3 +25,9 @@ assets = ["liblinoodle.so"]
 opt-level = 3
 strip = "symbols"
 lto = "fat"
+
+[profile.dev.package.aes]
+opt-level = 3
+
+[profile.dev.package.aes-gcm]
+opt-level = 3

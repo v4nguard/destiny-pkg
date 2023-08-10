@@ -1,6 +1,6 @@
 use clap::Parser;
 use clap_num::maybe_hex;
-use destiny_pkg::package::classify_file;
+use destiny_pkg::package::classify_file_prebl;
 use destiny_pkg::{PackageManager, PackageVersion, TagHash};
 use std::fs::File;
 use std::io::Write;
@@ -32,8 +32,8 @@ fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let mut package_manager = PackageManager::new(args.packages_path, args.version, true)?;
 
-    for (p, i, e) in package_manager.get_all_by_reference(args.reference) {
-        let pkg_path = package_manager.package_paths.get(&p).unwrap();
+    for (t, e) in package_manager.get_all_by_reference(args.reference) {
+        let pkg_path = package_manager.package_paths.get(&t.pkg_id()).unwrap();
         let pkg_name = PathBuf::from(pkg_path)
             .file_stem()
             .unwrap()
@@ -46,7 +46,7 @@ fn main() -> anyhow::Result<()> {
             .unwrap_or_else(|| format!("./out/{pkg_name}"));
 
         let ext = if args.version == PackageVersion::Destiny2PreBeyondLight {
-            classify_file(e.file_type, e.file_subtype)
+            classify_file_prebl(e.file_type, e.file_subtype)
         } else {
             "bin".to_string()
         };
@@ -55,28 +55,40 @@ fn main() -> anyhow::Result<()> {
         let ref_hash = TagHash(e.reference);
         if ref_hash.is_pkg_file() {
             println!(
-                "{:04x}/{i} 0x{:04x} - Reference {ref_hash:?} / r=0x{:x} (type={}, subtype={}, ext={ext})",
-                p, e.file_size, ref_hash.0, e.file_type, e.file_subtype
+                "{:04x}/{} 0x{:04x} - Reference {ref_hash:?} / r=0x{:x} (type={}, subtype={}, ext={ext})",
+                t.pkg_id(), t.entry_index(), e.file_size, ref_hash.0, e.file_type, e.file_subtype
             );
         } else {
             println!(
-                "{:04x}/{i} 0x{:04x} - r=0x{:x} (type={}, subtype={}, ext={ext})",
-                p, e.file_size, ref_hash.0, e.file_type, e.file_subtype
+                "{:04x}/{} 0x{:04x} - r=0x{:x} (type={}, subtype={}, ext={ext})",
+                t.pkg_id(),
+                t.entry_index(),
+                e.file_size,
+                ref_hash.0,
+                e.file_type,
+                e.file_subtype
             );
         }
 
         if !args.dry_run {
-            let data = match package_manager.read_entry(p, i) {
+            let data = match package_manager.read_tag(t) {
                 Ok(data) => data,
                 Err(e) => {
-                    eprintln!("Failed to extract entry {:04x}/{}: {e}", p, i,);
+                    eprintln!(
+                        "Failed to extract entry {:04x}/{}: {e}",
+                        t.pkg_id(),
+                        t.entry_index()
+                    );
                     continue;
                 }
             };
 
             let mut o = File::create(format!(
-                "{out_dir}/{i}_{:08x}_t{}_s{}.{ext}",
-                e.reference, e.file_type, e.file_subtype
+                "{out_dir}/{}_{:08x}_t{}_s{}.{ext}",
+                t.entry_index(),
+                e.reference,
+                e.file_type,
+                e.file_subtype
             ))?;
             o.write_all(&data)?;
         }

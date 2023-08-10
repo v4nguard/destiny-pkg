@@ -51,7 +51,9 @@ impl TagHash {
 
 impl Debug for TagHash {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        if !self.is_valid() {
+        if self.0 == u32::MAX {
+            f.write_str("TagHash(NONE)")
+        } else if !self.is_valid() {
             f.write_fmt(format_args!("TagHash(INVALID(0x{:x}))", self.0))
         } else {
             f.write_fmt(format_args!(
@@ -66,5 +68,26 @@ impl Debug for TagHash {
 impl Display for TagHash {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("TagHash(0x{:x})", self.0))
+    }
+}
+
+#[derive(BinRead, BinWrite, Copy, Clone, PartialEq, PartialOrd, Hash, Eq)]
+pub struct TagHash64(pub u64);
+
+impl From<TagHash64> for u64 {
+    fn from(value: TagHash64) -> Self {
+        value.0
+    }
+}
+
+impl From<u64> for TagHash64 {
+    fn from(value: u64) -> Self {
+        Self(value)
+    }
+}
+
+impl Display for TagHash64 {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("TagHash64(0x{:x})", self.0))
     }
 }

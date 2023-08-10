@@ -65,11 +65,11 @@ impl Package for PackageD2Beta {
     }
 
     fn pkg_id(&self) -> u16 {
-        self.header.pkg_id
+        self.common.pkg_id
     }
 
     fn patch_id(&self) -> u16 {
-        self.header.patch_id
+        self.common.patch_id
     }
 
     fn hash64_table(&self) -> Vec<UHashTableEntry> {
