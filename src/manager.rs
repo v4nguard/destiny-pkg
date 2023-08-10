@@ -44,7 +44,7 @@ impl PackageManager {
             for entry in fs::read_dir(path)? {
                 let entry = entry?;
                 let path = entry.path();
-                if path.is_file() {
+                if path.is_file() && path.to_string_lossy().to_lowercase().ends_with(".pkg") {
                     packages_all.push(path.to_string_lossy().to_string());
                 }
             }
