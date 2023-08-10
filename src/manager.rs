@@ -5,6 +5,7 @@ use anyhow::anyhow;
 use binrw::{BinRead, BinReaderExt};
 use nohash_hasher::IntMap;
 use rayon::prelude::*;
+use std::cell::RefCell;
 use std::collections::hash_map::Entry;
 use std::fs;
 use std::io::Cursor;
@@ -27,7 +28,7 @@ pub struct PackageManager {
     pub hash64_table: IntMap<u64, HashTableEntryShort>,
 
     /// Packages that are currently open for reading
-    pkgs: IntMap<u16, Arc<dyn Package>>,
+    pkgs: RefCell<IntMap<u16, Arc<dyn Package>>>,
 }
 
 impl PackageManager {
@@ -135,8 +136,8 @@ impl PackageManager {
             .collect()
     }
 
-    fn get_or_load_pkg(&mut self, pkg_id: u16) -> anyhow::Result<Arc<dyn Package>> {
-        Ok(match self.pkgs.entry(pkg_id) {
+    fn get_or_load_pkg(&self, pkg_id: u16) -> anyhow::Result<Arc<dyn Package>> {
+        Ok(match self.pkgs.borrow_mut().entry(pkg_id) {
             Entry::Occupied(o) => o.get().clone(),
             Entry::Vacant(v) => v
                 .insert(
@@ -149,7 +150,7 @@ impl PackageManager {
         })
     }
 
-    pub fn read_tag(&mut self, tag: impl Into<TagHash>) -> anyhow::Result<Vec<u8>> {
+    pub fn read_tag(&self, tag: impl Into<TagHash>) -> anyhow::Result<Vec<u8>> {
         let tag = tag.into();
         Ok(self
             .get_or_load_pkg(tag.pkg_id())?
@@ -157,7 +158,7 @@ impl PackageManager {
             .to_vec())
     }
 
-    pub fn read_hash(&mut self, hash: impl Into<TagHash64>) -> anyhow::Result<Vec<u8>> {
+    pub fn read_hash(&self, hash: impl Into<TagHash64>) -> anyhow::Result<Vec<u8>> {
         let hash = hash.into();
         let tag = self
             .hash64_table
@@ -167,7 +168,7 @@ impl PackageManager {
         self.read_tag(tag)
     }
 
-    pub fn get_entry(&mut self, tag: impl Into<TagHash>) -> anyhow::Result<UEntryHeader> {
+    pub fn get_entry(&self, tag: impl Into<TagHash>) -> anyhow::Result<UEntryHeader> {
         let tag = tag.into();
         self.get_or_load_pkg(tag.pkg_id())?
             .entries()
@@ -177,7 +178,7 @@ impl PackageManager {
     }
 
     /// Read any BinRead type
-    pub fn read_tag_struct<'a, T: BinRead>(&mut self, tag: impl Into<TagHash>) -> anyhow::Result<T>
+    pub fn read_tag_struct<'a, T: BinRead>(&self, tag: impl Into<TagHash>) -> anyhow::Result<T>
     where
         T::Args<'a>: Default + Clone,
     {
@@ -188,10 +189,7 @@ impl PackageManager {
     }
 
     /// Read any BinRead type
-    pub fn read_hash_struct<'a, T: BinRead>(
-        &mut self,
-        hash: impl Into<TagHash64>,
-    ) -> anyhow::Result<T>
+    pub fn read_hash_struct<'a, T: BinRead>(&self, hash: impl Into<TagHash64>) -> anyhow::Result<T>
     where
         T::Args<'a>: Default + Clone,
     {
