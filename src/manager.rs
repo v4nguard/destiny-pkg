@@ -11,7 +11,7 @@ use std::fs;
 use std::io::Cursor;
 use std::path::Path;
 use std::sync::Arc;
-use tracing::debug_span;
+use tracing::{debug_span, info};
 
 #[derive(Clone, Copy)]
 pub struct HashTableEntryShort {
@@ -37,42 +37,52 @@ impl PackageManager {
         version: PackageVersion,
         build_index: bool,
     ) -> anyhow::Result<PackageManager> {
-        let path = packages_dir.as_ref();
-        // Every package in the given directory, including every patch
-        let mut packages_all = vec![];
-        debug_span!("Discover packages in directory").in_scope(|| -> anyhow::Result<()> {
-            for entry in fs::read_dir(path)? {
-                let entry = entry?;
-                let path = entry.path();
-                if path.is_file() && path.to_string_lossy().to_lowercase().ends_with(".pkg") {
-                    packages_all.push(path.to_string_lossy().to_string());
-                }
-            }
-
-            Ok(())
-        })?;
-
-        packages_all.sort();
-
         // All the latest packages
         let mut packages: IntMap<u16, String> = Default::default();
-        debug_span!("Filter latest packages").in_scope(|| {
-            for p in packages_all {
-                let parts: Vec<&str> = p.split("_").collect();
-                if let Some(Ok(pkg_id)) = parts
-                    .get(parts.len() - 2)
-                    .map(|s| u16::from_str_radix(s, 16))
-                {
-                    packages.insert(pkg_id, p);
-                } else {
-                    let _span = debug_span!("Open package to find package ID").entered();
-                    // Take the long route and extract the package ID from the header
-                    if let Ok(pkg) = version.open(&p) {
-                        packages.insert(pkg.pkg_id(), p);
+
+        let write_cache = if let Some(cache) = Self::read_package_cache() {
+            info!("Loading package cache");
+            packages = cache;
+            false
+        } else {
+            info!("Creating new package cache");
+            let path = packages_dir.as_ref();
+            // Every package in the given directory, including every patch
+            let mut packages_all = vec![];
+            debug_span!("Discover packages in directory").in_scope(|| -> anyhow::Result<()> {
+                for entry in fs::read_dir(path)? {
+                    let entry = entry?;
+                    let path = entry.path();
+                    if path.is_file() && path.to_string_lossy().to_lowercase().ends_with(".pkg") {
+                        packages_all.push(path.to_string_lossy().to_string());
                     }
                 }
-            }
-        });
+
+                Ok(())
+            })?;
+
+            packages_all.sort();
+
+            debug_span!("Filter latest packages").in_scope(|| {
+                for p in packages_all {
+                    let parts: Vec<&str> = p.split("_").collect();
+                    if let Some(Ok(pkg_id)) = parts
+                        .get(parts.len() - 2)
+                        .map(|s| u16::from_str_radix(s, 16))
+                    {
+                        packages.insert(pkg_id, p);
+                    } else {
+                        let _span = debug_span!("Open package to find package ID").entered();
+                        // Take the long route and extract the package ID from the header
+                        if let Ok(pkg) = version.open(&p) {
+                            packages.insert(pkg.pkg_id(), p);
+                        }
+                    }
+                }
+            });
+
+            true
+        };
 
         let mut s = Self {
             package_paths: packages,
@@ -82,11 +92,41 @@ impl PackageManager {
             pkgs: Default::default(),
         };
 
+        if write_cache {
+            s.write_package_cache().ok();
+        }
+
         if build_index {
             s.rebuild_tables();
         }
 
         Ok(s)
+    }
+
+    fn read_package_cache() -> Option<IntMap<u16, String>> {
+        let mut packages: IntMap<u16, String> = Default::default();
+        if let Ok(s) = json::parse(&std::fs::read_to_string("package_cache.json").ok()?) {
+            for (id, path) in s["packages"].entries() {
+                packages.insert(
+                    u16::from_str_radix(id, 10).ok()?,
+                    path.as_str()?.to_string(),
+                );
+            }
+        }
+
+        Some(packages)
+    }
+
+    fn write_package_cache(&self) -> anyhow::Result<()> {
+        let mut s = json::object! {
+            packages: {}
+        };
+
+        for (id, path) in &self.package_paths {
+            s["packages"][id.to_string()] = path.to_string().into();
+        }
+
+        Ok(std::fs::write("package_cache.json", s.to_string())?)
     }
 
     pub fn rebuild_tables(&mut self) {
@@ -119,7 +159,7 @@ impl PackageManager {
         self.package_entry_index = entries;
         self.hash64_table = hashes.iter().flat_map(|(v,)| v.clone()).collect();
 
-        println!("Loaded {} packages", self.package_entry_index.len());
+        info!("Loaded {} packages", self.package_entry_index.len());
     }
 
     pub fn get_all_by_reference(&self, reference: u32) -> Vec<(TagHash, UEntryHeader)> {
@@ -158,7 +198,7 @@ impl PackageManager {
             .to_vec())
     }
 
-    pub fn read_hash(&self, hash: impl Into<TagHash64>) -> anyhow::Result<Vec<u8>> {
+    pub fn read_tag64(&self, hash: impl Into<TagHash64>) -> anyhow::Result<Vec<u8>> {
         let hash = hash.into();
         let tag = self
             .hash64_table
@@ -189,11 +229,11 @@ impl PackageManager {
     }
 
     /// Read any BinRead type
-    pub fn read_hash_struct<'a, T: BinRead>(&self, hash: impl Into<TagHash64>) -> anyhow::Result<T>
+    pub fn read_tag64_struct<'a, T: BinRead>(&self, hash: impl Into<TagHash64>) -> anyhow::Result<T>
     where
         T::Args<'a>: Default + Clone,
     {
-        let data = self.read_hash(hash)?;
+        let data = self.read_tag64(hash)?;
         let mut cursor = Cursor::new(&data);
         Ok(cursor.read_le()?)
     }

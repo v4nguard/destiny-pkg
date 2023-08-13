@@ -22,6 +22,10 @@ struct Args {
     /// Version of the package to extract
     #[arg(short, value_enum)]
     version: PackageVersion,
+
+    /// Only extract 8080 files
+    #[arg(long)]
+    only_8080: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -43,6 +47,10 @@ fn main() -> anyhow::Result<()> {
 
     println!("PKG {:04x}_{}", package.pkg_id(), package.patch_id());
     for (i, e) in package.entries().iter().enumerate() {
+        if (e.file_type != 8 && e.file_type != 16) && args.only_8080 {
+            continue;
+        }
+
         print!("{}/{} - ", e.file_type, e.file_subtype);
         let ref_hash = TagHash(e.reference);
 
