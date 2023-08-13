@@ -1,7 +1,11 @@
 use binrw::{BinRead, BinWrite};
-use std::fmt::{Debug, Display, Formatter};
+use nohash_hasher::IsEnabled;
+use std::{
+    fmt::{Debug, Display, Formatter},
+    hash::Hash,
+};
 
-#[derive(BinRead, BinWrite, Copy, Clone, PartialEq, PartialOrd, Hash, Eq)]
+#[derive(BinRead, BinWrite, Copy, Clone, PartialEq, PartialOrd, Eq)]
 pub struct TagHash(pub u32);
 
 impl From<TagHash> for u32 {
@@ -71,7 +75,14 @@ impl Display for TagHash {
     }
 }
 
-#[derive(BinRead, BinWrite, Copy, Clone, PartialEq, PartialOrd, Hash, Eq)]
+impl IsEnabled for TagHash {}
+impl Hash for TagHash {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        state.write_u32(self.0)
+    }
+}
+
+#[derive(BinRead, BinWrite, Copy, Clone, PartialEq, PartialOrd, Eq)]
 pub struct TagHash64(pub u64);
 
 impl From<TagHash64> for u64 {
@@ -95,5 +106,12 @@ impl Debug for TagHash64 {
 impl Display for TagHash64 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{:016X}", self.0.to_be()))
+    }
+}
+
+impl IsEnabled for TagHash64 {}
+impl Hash for TagHash64 {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        state.write_u64(self.0)
     }
 }
