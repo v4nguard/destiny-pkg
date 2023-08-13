@@ -86,6 +86,12 @@ impl From<u64> for TagHash64 {
     }
 }
 
+impl Debug for TagHash64 {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("TagHash(0x{:016X})", self.0))
+    }
+}
+
 impl Display for TagHash64 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{:016X}", self.0.to_be()))
