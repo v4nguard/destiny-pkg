@@ -18,4 +18,4 @@ pub use d2_prebl::PackageD2PreBL;
 pub use manager::PackageManager;
 pub use package::Package;
 pub use package::PackageVersion;
-pub use tag::TagHash;
+pub use tag::{TagHash, TagHash64};
