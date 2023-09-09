@@ -4,8 +4,8 @@ use crate::TagHash;
 use anyhow::anyhow;
 use binrw::{BinRead, BinReaderExt};
 use nohash_hasher::IntMap;
+use parking_lot::RwLock;
 use rayon::prelude::*;
-use std::cell::RefCell;
 use std::collections::hash_map::Entry;
 use std::fs;
 use std::io::Cursor;
@@ -28,7 +28,7 @@ pub struct PackageManager {
     pub hash64_table: IntMap<u64, HashTableEntryShort>,
 
     /// Packages that are currently open for reading
-    pkgs: RefCell<IntMap<u16, Arc<dyn Package>>>,
+    pkgs: RwLock<IntMap<u16, Arc<dyn Package>>>,
 }
 
 impl PackageManager {
@@ -176,8 +176,25 @@ impl PackageManager {
             .collect()
     }
 
+    pub fn get_all_by_type(&self, etype: u8, esubtype: Option<u8>) -> Vec<(TagHash, UEntryHeader)> {
+        self.package_entry_index
+            .par_iter()
+            .map(|(p, e)| {
+                e.iter()
+                    .enumerate()
+                    .filter(|(_, e)| {
+                        e.file_type == etype
+                            && esubtype.map(|t| t == e.file_subtype).unwrap_or(true)
+                    })
+                    .map(|(i, e)| (TagHash::new(*p, i as _), e.clone()))
+                    .collect::<Vec<(TagHash, UEntryHeader)>>()
+            })
+            .flatten()
+            .collect()
+    }
+
     fn get_or_load_pkg(&self, pkg_id: u16) -> anyhow::Result<Arc<dyn Package>> {
-        Ok(match self.pkgs.borrow_mut().entry(pkg_id) {
+        Ok(match self.pkgs.write().entry(pkg_id) {
             Entry::Occupied(o) => o.get().clone(),
             Entry::Vacant(v) => v
                 .insert(

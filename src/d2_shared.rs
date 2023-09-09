@@ -4,8 +4,8 @@ use crate::{oodle, PackageVersion, TagHash};
 use anyhow::Context;
 use binrw::BinRead;
 use nohash_hasher::IntMap;
+use parking_lot::RwLock;
 use std::borrow::Cow;
-use std::cell::RefCell;
 use std::collections::hash_map::Entry;
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
@@ -59,18 +59,18 @@ pub struct PackageCommonD2 {
     pub(crate) pkg_id: u16,
     pub(crate) patch_id: u16,
 
-    pub(crate) gcm: RefCell<PkgGcmState>,
+    pub(crate) gcm: RwLock<PkgGcmState>,
     pub(crate) entries: Vec<EntryHeader>,
     pub(crate) blocks: Vec<BlockHeader>,
     pub(crate) hashes: Vec<HashTableEntry>,
 
-    pub(crate) reader: RefCell<Box<dyn ReadSeek>>,
+    pub(crate) reader: RwLock<Box<dyn ReadSeek>>,
     pub(crate) path_base: String,
 
     /// Used for purging old blocks
     pub(crate) block_counter: AtomicUsize,
-    pub(crate) block_cache: RefCell<IntMap<usize, (usize, Arc<Vec<u8>>)>>,
-    pub(crate) file_handles: RefCell<IntMap<usize, File>>,
+    pub(crate) block_cache: RwLock<IntMap<usize, (usize, Arc<Vec<u8>>)>>,
+    pub(crate) file_handles: RwLock<IntMap<usize, File>>,
 }
 
 impl PackageCommonD2 {
@@ -91,11 +91,11 @@ impl PackageCommonD2 {
             version,
             pkg_id,
             patch_id,
-            gcm: RefCell::new(PkgGcmState::new(pkg_id, version)),
+            gcm: RwLock::new(PkgGcmState::new(pkg_id, version)),
             entries,
             blocks,
             hashes,
-            reader: RefCell::new(Box::new(reader)),
+            reader: RwLock::new(Box::new(reader)),
             path_base,
             block_counter: AtomicUsize::default(),
             block_cache: Default::default(),
@@ -111,11 +111,11 @@ impl PackageCommonD2 {
 
         if self.patch_id == bh.patch_id {
             self.reader
-                .borrow_mut()
+                .write()
                 .seek(SeekFrom::Start(bh.offset as u64))?;
-            self.reader.borrow_mut().read_exact(&mut data)?;
+            self.reader.write().read_exact(&mut data)?;
         } else {
-            match self.file_handles.borrow_mut().entry(bh.patch_id as _) {
+            match self.file_handles.write().entry(bh.patch_id as _) {
                 Entry::Occupied(mut f) => {
                     let f = f.get_mut();
                     f.seek(SeekFrom::Start(bh.offset as u64))?;
@@ -151,7 +151,7 @@ impl PackageCommonD2 {
                 tracing::debug_span!("PackageCommonD2::get_block_raw decrypt", block_index)
                     .entered();
             self.gcm
-                .borrow_mut()
+                .write()
                 .decrypt_block_in_place(bh.flags, &bh.gcm_tag, &mut block_data)?;
         };
 
@@ -162,14 +162,20 @@ impl PackageCommonD2 {
 
             let mut buffer = vec![0u8; BLOCK_SIZE];
             let _decompressed_size = match self.version {
-                PackageVersion::DestinyLegacy => oodle::decompress_3,
-                PackageVersion::Destiny => oodle::decompress_3,
-                PackageVersion::Destiny2Beta => oodle::decompress_3,
-                PackageVersion::Destiny2PreBeyondLight => oodle::decompress_3,
-                PackageVersion::Destiny2BeyondLight => oodle::decompress_9,
-                PackageVersion::Destiny2WitchQueen => oodle::decompress_9,
-                PackageVersion::Destiny2Lightfall => oodle::decompress_9,
-                PackageVersion::Destiny2 => oodle::decompress_9,
+                // Destiny 1
+                /*PackageVersion::DestinyInternalAlpha |*/
+                PackageVersion::DestinyLegacy | PackageVersion::Destiny => oodle::decompress_3,
+
+                // Destiny 2 (Red War - Beyond Light)
+                PackageVersion::Destiny2Beta | PackageVersion::Destiny2PreBeyondLight => {
+                    oodle::decompress_3
+                }
+
+                // Destiny 2 (Beyond Light - Latest)
+                PackageVersion::Destiny2BeyondLight
+                | PackageVersion::Destiny2WitchQueen
+                | PackageVersion::Destiny2Lightfall
+                | PackageVersion::Destiny2 => oodle::decompress_9,
             }(&block_data, &mut buffer)?;
 
             buffer
@@ -182,7 +188,7 @@ impl PackageCommonD2 {
 
     pub fn get_block(&self, block_index: usize) -> anyhow::Result<Arc<Vec<u8>>> {
         let _span = tracing::debug_span!("PackageCommonD2::get_block", block_index).entered();
-        let (_, b) = match self.block_cache.borrow_mut().entry(block_index) {
+        let (_, b) = match self.block_cache.write().entry(block_index) {
             Entry::Occupied(o) => o.get().clone(),
             Entry::Vacant(v) => {
                 let block = self.read_block(*v.key())?;
@@ -199,8 +205,8 @@ impl PackageCommonD2 {
             }
         };
 
-        while self.block_cache.borrow().len() > BLOCK_CACHE_SIZE {
-            let bc = self.block_cache.borrow();
+        while self.block_cache.read().len() > BLOCK_CACHE_SIZE {
+            let bc = self.block_cache.read();
             let (oldest, _) = bc
                 .iter()
                 .min_by(|(_, (at, _)), (_, (bt, _))| at.cmp(bt))
@@ -209,7 +215,7 @@ impl PackageCommonD2 {
             let oldest = *oldest;
             drop(bc);
 
-            self.block_cache.borrow_mut().remove(&oldest);
+            self.block_cache.write().remove(&oldest);
         }
 
         Ok(b)

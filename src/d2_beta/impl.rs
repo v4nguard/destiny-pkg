@@ -10,11 +10,13 @@ use crate::d2_shared::PackageCommonD2;
 use crate::package::{Package, ReadSeek, UEntryHeader, UHashTableEntry};
 use crate::PackageVersion;
 
-// TODO(cohae): Ensure Send+Sync so packages can be multithreaded, should be enforced on `Package` as well
 pub struct PackageD2Beta {
     common: PackageCommonD2,
     pub header: PackageHeader,
 }
+
+unsafe impl Send for PackageD2Beta {}
+unsafe impl Sync for PackageD2Beta {}
 
 impl PackageD2Beta {
     pub fn open(path: &str) -> anyhow::Result<PackageD2Beta> {

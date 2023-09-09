@@ -1,3 +1,4 @@
+use crate::d1_internal_alpha::PackageD1InternalAlpha;
 use crate::d1_legacy::PackageD1Legacy;
 use crate::d2_beta::PackageD2Beta;
 use crate::d2_beyondlight::PackageD2BeyondLight;
@@ -30,6 +31,9 @@ pub struct UHashTableEntry {
 
 #[derive(clap::ValueEnum, PartialEq, Debug, Clone, Copy)]
 pub enum PackageVersion {
+    // /// PS3/X360 version of Destiny (internal development alpha)
+    // #[value(name = "d1_internal_alpha")]
+    // DestinyInternalAlpha,
     /// PS3/X360 version of Destiny (The Taken King)
     #[value(name = "d1_legacy")]
     DestinyLegacy,
@@ -66,6 +70,7 @@ pub enum PackageVersion {
 impl PackageVersion {
     pub fn open(&self, path: &str) -> anyhow::Result<Arc<dyn Package>> {
         Ok(match self {
+            // PackageVersion::DestinyInternalAlpha => Arc::new(PackageD1InternalAlpha::open(path)?),
             PackageVersion::DestinyLegacy => Arc::new(PackageD1Legacy::open(path)?),
             PackageVersion::Destiny => {
                 anyhow::bail!("The latest version of Destiny 1 is not supported yet")
@@ -81,7 +86,7 @@ impl PackageVersion {
 }
 
 // TODO(cohae): Package language
-pub trait Package {
+pub trait Package: Send + Sync {
     fn endianness(&self) -> binrw::Endian;
 
     fn pkg_id(&self) -> u16;
@@ -194,8 +199,8 @@ pub fn classify_file_prebl(ftype: u8, fsubtype: u8) -> String {
         (26, 5) => "bnk".to_string(),
         // WWise audio stream
         (26, 6) => "wem".to_string(),
-        // Havok data
-        (26, 7) => "hkf".to_string(),
+        // Havok file
+        (26, 7) => "hkx".to_string(),
         // CriWare USM video
         (27, _) => "usm".to_string(),
         (32, 1) => "texture.header".to_string(),

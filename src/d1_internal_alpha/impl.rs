@@ -1,4 +1,4 @@
-use crate::d1_legacy::structs::{BlockHeader, EntryHeader, PackageHeader};
+use crate::d1_internal_alpha::structs::{BlockHeader, EntryHeader, PackageHeader};
 use crate::oodle;
 use crate::package::{Package, ReadSeek, UEntryHeader, UHashTableEntry, BLOCK_CACHE_SIZE};
 use anyhow::Context;
@@ -13,7 +13,7 @@ use std::sync::Arc;
 
 pub const BLOCK_SIZE: usize = 0x40000;
 
-pub struct PackageD1Legacy {
+pub struct PackageD1InternalAlpha {
     pub header: PackageHeader,
     entries: Vec<EntryHeader>,
     blocks: Vec<BlockHeader>,
@@ -25,11 +25,11 @@ pub struct PackageD1Legacy {
     block_cache: RwLock<IntMap<usize, (usize, Arc<Vec<u8>>)>>,
 }
 
-unsafe impl Send for PackageD1Legacy {}
-unsafe impl Sync for PackageD1Legacy {}
+unsafe impl Send for PackageD1InternalAlpha {}
+unsafe impl Sync for PackageD1InternalAlpha {}
 
-impl PackageD1Legacy {
-    pub fn open(path: &str) -> anyhow::Result<PackageD1Legacy> {
+impl PackageD1InternalAlpha {
+    pub fn open(path: &str) -> anyhow::Result<PackageD1InternalAlpha> {
         let reader = BufReader::new(File::open(path)?);
 
         Self::from_reader(path, reader)
@@ -38,7 +38,7 @@ impl PackageD1Legacy {
     pub fn from_reader<R: ReadSeek + 'static>(
         path: &str,
         reader: R,
-    ) -> anyhow::Result<PackageD1Legacy> {
+    ) -> anyhow::Result<PackageD1InternalAlpha> {
         let mut reader = reader;
         let header: PackageHeader = reader.read_be()?;
 
@@ -59,7 +59,7 @@ impl PackageD1Legacy {
         let last_underscore_pos = path.rfind('_').unwrap();
         let path_base = path[..last_underscore_pos].to_owned();
 
-        Ok(PackageD1Legacy {
+        Ok(PackageD1InternalAlpha {
             path_base,
             reader: RwLock::new(Box::new(reader)),
             header,
@@ -74,7 +74,7 @@ impl PackageD1Legacy {
         let bh = &self.blocks[block_index];
         let mut data = vec![0u8; bh.size as usize];
 
-        if self.header.patch_id == bh.patch_id {
+        if self.patch_id() == bh.patch_id {
             self.reader
                 .write()
                 .seek(SeekFrom::Start(bh.offset as u64))?;
@@ -107,7 +107,7 @@ impl PackageD1Legacy {
     }
 }
 
-impl Package for PackageD1Legacy {
+impl Package for PackageD1InternalAlpha {
     fn endianness(&self) -> Endian {
         Endian::Big // TODO(cohae): Not necessarily
     }
@@ -117,7 +117,8 @@ impl Package for PackageD1Legacy {
     }
 
     fn patch_id(&self) -> u16 {
-        self.header.patch_id
+        // Dev packages do not use patch numbers
+        0
     }
 
     fn hash64_table(&self) -> Vec<UHashTableEntry> {

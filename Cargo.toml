@@ -17,6 +17,8 @@ clap-num = "1.0.2"
 tracing = "0.1.37"
 libloading = "0.8.0"
 json = "0.12.4"
+ddsfile = "0.5.1"
+parking_lot = "0.12.1"
 
 [package.metadata.appimage]
 auto_link = true
