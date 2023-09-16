@@ -6,7 +6,7 @@ use std::sync::Arc;
 use binrw::{BinReaderExt, Endian, VecArgs};
 
 use crate::d2_beyondlight::structs::PackageHeader;
-use crate::d2_shared::PackageCommonD2;
+use crate::d2_shared::{HashTableEntry, PackageCommonD2};
 use crate::package::{Package, ReadSeek, UEntryHeader, UHashTableEntry};
 use crate::PackageVersion;
 
@@ -45,6 +45,16 @@ impl PackageD2BeyondLight {
             inner: (),
         })?;
 
+        let hashes: Vec<HashTableEntry> = if header.h64_table_size != 0 {
+            reader.seek(SeekFrom::Start((header.h64_table_offset + 0x50) as _))?;
+            reader.read_le_args(VecArgs {
+                count: header.h64_table_size as _,
+                inner: (),
+            })?
+        } else {
+            vec![]
+        };
+
         Ok(PackageD2BeyondLight {
             common: PackageCommonD2::new(
                 reader,
@@ -53,7 +63,7 @@ impl PackageD2BeyondLight {
                 header.patch_id,
                 entries,
                 blocks,
-                vec![],
+                hashes,
                 path.to_string(),
             )?,
             header,
@@ -76,8 +86,15 @@ impl Package for PackageD2BeyondLight {
     }
 
     fn hash64_table(&self) -> Vec<UHashTableEntry> {
-        // TODO(cohae): Fix hashtable
-        vec![]
+        self.common
+            .hashes
+            .iter()
+            .map(|h| UHashTableEntry {
+                hash64: h.hash64,
+                hash32: h.hash32,
+                reference: h.reference,
+            })
+            .collect()
     }
 
     fn entries(&self) -> Vec<UEntryHeader> {
