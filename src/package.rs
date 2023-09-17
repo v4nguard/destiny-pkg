@@ -1,4 +1,3 @@
-use crate::d1_internal_alpha::PackageD1InternalAlpha;
 use crate::d1_legacy::PackageD1Legacy;
 use crate::d2_beta::PackageD2Beta;
 use crate::d2_beyondlight::PackageD2BeyondLight;

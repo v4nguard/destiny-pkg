@@ -11,7 +11,7 @@ use std::fs;
 use std::io::Cursor;
 use std::path::Path;
 use std::sync::Arc;
-use tracing::{debug_span, info};
+use tracing::{debug_span, error, info};
 
 #[derive(Clone, Copy)]
 pub struct HashTableEntryShort {
@@ -107,10 +107,7 @@ impl PackageManager {
         let mut packages: IntMap<u16, String> = Default::default();
         if let Ok(s) = json::parse(&std::fs::read_to_string("package_cache.json").ok()?) {
             for (id, path) in s["packages"].entries() {
-                packages.insert(
-                    u16::from_str_radix(id, 10).ok()?,
-                    path.as_str()?.to_string(),
-                );
+                packages.insert(id.parse::<u16>().ok()?, path.as_str()?.to_string());
             }
         }
 
@@ -133,9 +130,15 @@ impl PackageManager {
         let (entries, hashes): (IntMap<u16, Vec<UEntryHeader>>, Vec<_>) = self
             .package_paths
             .par_iter()
-            .map(|(_, p)| {
+            .filter_map(|(_, p)| {
                 let _span = debug_span!("Read package tables", package = p).entered();
-                let pkg = self.version.open(p).unwrap();
+                let pkg = match self.version.open(p) {
+                    Ok(package) => package,
+                    Err(e) => {
+                        error!("Failed to open package '{p}': {e}");
+                        return None;
+                    }
+                };
                 let entries = (pkg.pkg_id(), pkg.entries());
 
                 let hashes = (pkg
@@ -152,7 +155,7 @@ impl PackageManager {
                     })
                     .collect::<Vec<(u64, HashTableEntryShort)>>(),);
 
-                (entries, hashes)
+                Some((entries, hashes))
             })
             .unzip();
 
