@@ -3,6 +3,7 @@ use std::io::{BufReader, SeekFrom};
 
 use std::sync::Arc;
 
+use anyhow::Context;
 use binrw::{BinReaderExt, Endian, VecArgs};
 
 use crate::d2_beyondlight::structs::PackageHeader;
@@ -20,7 +21,8 @@ unsafe impl Sync for PackageD2BeyondLight {}
 
 impl PackageD2BeyondLight {
     pub fn open(path: &str, version: PackageVersion) -> anyhow::Result<PackageD2BeyondLight> {
-        let reader = BufReader::new(File::open(path)?);
+        let reader =
+            BufReader::new(File::open(path).with_context(|| format!("Cannot find file '{path}'"))?);
 
         Self::from_reader(path, reader, version)
     }

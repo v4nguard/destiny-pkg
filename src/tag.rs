@@ -26,7 +26,15 @@ impl From<(u16, u16)> for TagHash {
     }
 }
 
+impl Default for TagHash {
+    fn default() -> Self {
+        Self::NONE
+    }
+}
+
 impl TagHash {
+    pub const NONE: TagHash = TagHash(u32::MAX);
+
     pub fn new(pkg_id: u16, entry: u16) -> TagHash {
         TagHash(
             0x80800000u32
@@ -36,12 +44,20 @@ impl TagHash {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.0 != u32::MAX && (self.0 > 0x80800000)
+        self.0 > 0x80800000
+    }
+
+    pub fn is_none(&self) -> bool {
+        self.0 == u32::MAX
+    }
+
+    pub fn is_some(&self) -> bool {
+        !self.is_none() && self.is_valid()
     }
 
     /// Does this hash look like a pkg hash?
     pub fn is_pkg_file(&self) -> bool {
-        self.is_valid() && (0x10..0xa00).contains(&self.pkg_id())
+        self.is_some() && (0x10..0xa00).contains(&self.pkg_id())
     }
 
     pub fn pkg_id(&self) -> u16 {
@@ -55,7 +71,7 @@ impl TagHash {
 
 impl Debug for TagHash {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        if self.0 == u32::MAX {
+        if self.is_none() {
             f.write_str("TagHash(NONE)")
         } else if !self.is_valid() {
             f.write_fmt(format_args!("TagHash(INVALID(0x{:x}))", self.0))
@@ -84,6 +100,16 @@ impl Hash for TagHash {
 
 #[derive(BinRead, BinWrite, Copy, Clone, PartialEq, PartialOrd, Eq)]
 pub struct TagHash64(pub u64);
+
+impl TagHash64 {
+    pub const NONE: TagHash64 = TagHash64(0);
+}
+
+impl Default for TagHash64 {
+    fn default() -> Self {
+        Self::NONE
+    }
+}
 
 impl From<TagHash64> for u64 {
     fn from(value: TagHash64) -> Self {

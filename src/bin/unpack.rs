@@ -26,10 +26,17 @@ struct Args {
     /// Only extract 8080 files
     #[arg(long)]
     only_8080: bool,
+
+    /// Don't print files
+    #[arg(short, long)]
+    silent: bool,
 }
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
+    if args.silent && args.dry_run {
+        eprintln!("Warning: silent and dry_run are both enabled, nothing will be printed");
+    }
 
     let pkg_name = PathBuf::from(args.package.clone())
         .file_stem()
@@ -51,7 +58,9 @@ fn main() -> anyhow::Result<()> {
             continue;
         }
 
-        print!("{}/{} - ", e.file_type, e.file_subtype);
+        if !args.silent {
+            print!("{}/{} - ", e.file_type, e.file_subtype);
+        }
         let ref_hash = TagHash(e.reference);
 
         let ext = if args.version == PackageVersion::Destiny2PreBeyondLight {
@@ -60,16 +69,18 @@ fn main() -> anyhow::Result<()> {
             "bin".to_string()
         };
 
-        if ref_hash.is_pkg_file() {
-            println!(
+        if !args.silent {
+            if ref_hash.is_pkg_file() {
+                println!(
                 "{i} 0x{:04x} - Reference {ref_hash:?} / r=0x{:x} (type={}, subtype={}, ext={ext})",
                 e.file_size, ref_hash.0, e.file_type, e.file_subtype
             );
-        } else {
-            println!(
-                "{i} 0x{:04x} - r=0x{:x} (type={}, subtype={}, ext={ext})",
-                e.file_size, ref_hash.0, e.file_type, e.file_subtype
-            );
+            } else {
+                println!(
+                    "{i} 0x{:04x} - r=0x{:x} (type={}, subtype={}, ext={ext})",
+                    e.file_size, ref_hash.0, e.file_type, e.file_subtype
+                );
+            }
         }
 
         if !args.dry_run {

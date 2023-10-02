@@ -1,7 +1,7 @@
 use crate::package::{Package, PackageVersion, UEntryHeader};
 use crate::tag::TagHash64;
 use crate::TagHash;
-use anyhow::anyhow;
+use anyhow::Context;
 use binrw::{BinRead, BinReaderExt};
 use nohash_hasher::IntMap;
 use parking_lot::RwLock;
@@ -199,14 +199,18 @@ impl PackageManager {
     fn get_or_load_pkg(&self, pkg_id: u16) -> anyhow::Result<Arc<dyn Package>> {
         Ok(match self.pkgs.write().entry(pkg_id) {
             Entry::Occupied(o) => o.get().clone(),
-            Entry::Vacant(v) => v
-                .insert(
+            Entry::Vacant(v) => {
+                let package_path = self
+                    .package_paths
+                    .get(&pkg_id)
+                    .context(format!("Couldn't get a path for package id {pkg_id:04x}"))?;
+                v.insert(
                     self.version
-                        .open(self.package_paths.get(&pkg_id).ok_or_else(|| {
-                            anyhow::anyhow!("Couldn't get a path for package id {pkg_id:04x}")
-                        })?)?,
+                        .open(&package_path)
+                        .context(format!("Failed to open package '{package_path}'"))?,
                 )
-                .clone(),
+                .clone()
+            }
         })
     }
 
@@ -223,7 +227,7 @@ impl PackageManager {
         let tag = self
             .hash64_table
             .get(&hash.0)
-            .ok_or_else(|| anyhow!("Hash not found"))?
+            .context("Hash not found")?
             .hash32;
         self.read_tag(tag)
     }
@@ -234,7 +238,7 @@ impl PackageManager {
             .entries()
             .get(tag.entry_index() as usize)
             .cloned()
-            .ok_or_else(|| anyhow::anyhow!("Entry does not exist in pkg {:04x}", tag.pkg_id()))
+            .context(format!("Entry does not exist in pkg {:04x}", tag.pkg_id()))
     }
 
     /// Read any BinRead type
