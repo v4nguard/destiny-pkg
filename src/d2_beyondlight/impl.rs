@@ -99,30 +99,12 @@ impl Package for PackageD2BeyondLight {
             .collect()
     }
 
-    fn entries(&self) -> Vec<UEntryHeader> {
-        self.common
-            .entries
-            .iter()
-            .map(|e| UEntryHeader {
-                reference: e.reference,
-                file_type: e.file_type,
-                file_subtype: e.file_subtype,
-                starting_block: e.starting_block,
-                starting_block_offset: e.starting_block_offset,
-                file_size: e.file_size,
-            })
-            .collect()
+    fn entries(&self) -> &[UEntryHeader] {
+        &self.common.entries_unified
     }
 
     fn entry(&self, index: usize) -> Option<UEntryHeader> {
-        self.common.entries.get(index).map(|e| UEntryHeader {
-            reference: e.reference,
-            file_type: e.file_type,
-            file_subtype: e.file_subtype,
-            starting_block: e.starting_block,
-            starting_block_offset: e.starting_block_offset,
-            file_size: e.file_size,
-        })
+        self.common.entries_unified.get(index).cloned()
     }
 
     fn get_block(&self, index: usize) -> anyhow::Result<Arc<Vec<u8>>> {

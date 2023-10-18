@@ -1,5 +1,5 @@
 use crate::crypto::PkgGcmState;
-use crate::package::{ReadSeek, BLOCK_CACHE_SIZE};
+use crate::package::{ReadSeek, UEntryHeader, BLOCK_CACHE_SIZE};
 use crate::{oodle, PackageVersion, TagHash};
 use anyhow::Context;
 use binrw::BinRead;
@@ -60,7 +60,8 @@ pub struct PackageCommonD2 {
     pub(crate) patch_id: u16,
 
     pub(crate) gcm: RwLock<PkgGcmState>,
-    pub(crate) entries: Vec<EntryHeader>,
+    pub(crate) _entries: Vec<EntryHeader>,
+    pub(crate) entries_unified: Arc<[UEntryHeader]>,
     pub(crate) blocks: Vec<BlockHeader>,
     pub(crate) hashes: Vec<HashTableEntry>,
 
@@ -87,12 +88,25 @@ impl PackageCommonD2 {
         let last_underscore_pos = path.rfind('_').unwrap();
         let path_base = path[..last_underscore_pos].to_owned();
 
+        let entries_unified: Vec<UEntryHeader> = entries
+            .iter()
+            .map(|e| UEntryHeader {
+                reference: e.reference,
+                file_type: e.file_type,
+                file_subtype: e.file_subtype,
+                starting_block: e.starting_block,
+                starting_block_offset: e.starting_block_offset,
+                file_size: e.file_size,
+            })
+            .collect();
+
         Ok(PackageCommonD2 {
             version,
             pkg_id,
             patch_id,
             gcm: RwLock::new(PkgGcmState::new(pkg_id, version)),
-            entries,
+            _entries: entries,
+            entries_unified: entries_unified.into(),
             blocks,
             hashes,
             reader: RwLock::new(Box::new(reader)),

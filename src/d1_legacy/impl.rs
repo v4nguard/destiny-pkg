@@ -15,7 +15,8 @@ pub const BLOCK_SIZE: usize = 0x40000;
 
 pub struct PackageD1Legacy {
     pub header: PackageHeader,
-    entries: Vec<EntryHeader>,
+    _entries: Vec<EntryHeader>,
+    entries_unified: Vec<UEntryHeader>,
     blocks: Vec<BlockHeader>,
 
     reader: RwLock<Box<dyn ReadSeek>>,
@@ -43,7 +44,7 @@ impl PackageD1Legacy {
         let header: PackageHeader = reader.read_be()?;
 
         reader.seek(SeekFrom::Start(header.entry_table_offset as u64))?;
-        let entries = reader.read_be_args(
+        let entries: Vec<EntryHeader> = reader.read_be_args(
             VecArgs::builder()
                 .count(header.entry_table_size as usize)
                 .finalize(),
@@ -59,11 +60,24 @@ impl PackageD1Legacy {
         let last_underscore_pos = path.rfind('_').unwrap();
         let path_base = path[..last_underscore_pos].to_owned();
 
+        let entries_unified: Vec<UEntryHeader> = entries
+            .iter()
+            .map(|e| UEntryHeader {
+                reference: e.reference,
+                file_type: e.file_type,
+                file_subtype: e.file_subtype,
+                starting_block: e.starting_block,
+                starting_block_offset: e.starting_block_offset,
+                file_size: e.file_size,
+            })
+            .collect();
+
         Ok(PackageD1Legacy {
             path_base,
             reader: RwLock::new(Box::new(reader)),
             header,
-            entries,
+            _entries: entries,
+            entries_unified,
             blocks,
             block_counter: AtomicUsize::default(),
             block_cache: Default::default(),
@@ -124,29 +138,12 @@ impl Package for PackageD1Legacy {
         vec![]
     }
 
-    fn entries(&self) -> Vec<UEntryHeader> {
-        self.entries
-            .iter()
-            .map(|e| UEntryHeader {
-                reference: e.reference,
-                file_type: e.file_type,
-                file_subtype: e.file_subtype,
-                starting_block: e.starting_block,
-                starting_block_offset: e.starting_block_offset,
-                file_size: e.file_size,
-            })
-            .collect()
+    fn entries(&self) -> &[UEntryHeader] {
+        &self.entries_unified
     }
 
     fn entry(&self, index: usize) -> Option<UEntryHeader> {
-        self.entries.get(index).map(|e| UEntryHeader {
-            reference: e.reference,
-            file_type: e.file_type,
-            file_subtype: e.file_subtype,
-            starting_block: e.starting_block,
-            starting_block_offset: e.starting_block_offset,
-            file_size: e.file_size,
-        })
+        self.entries_unified.get(index).cloned()
     }
 
     fn get_block(&self, block_index: usize) -> anyhow::Result<Arc<Vec<u8>>> {

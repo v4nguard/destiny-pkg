@@ -35,7 +35,6 @@ impl PackageManager {
     pub fn new<P: AsRef<Path>>(
         packages_dir: P,
         version: PackageVersion,
-        build_index: bool,
     ) -> anyhow::Result<PackageManager> {
         // All the latest packages
         let mut packages: IntMap<u16, String> = Default::default();
@@ -96,9 +95,7 @@ impl PackageManager {
             s.write_package_cache().ok();
         }
 
-        if build_index {
-            s.rebuild_tables();
-        }
+        s.build_lookup_tables();
 
         Ok(s)
     }
@@ -126,7 +123,7 @@ impl PackageManager {
         Ok(std::fs::write("package_cache.json", s.to_string())?)
     }
 
-    pub fn rebuild_tables(&mut self) {
+    pub fn build_lookup_tables(&mut self) {
         let (entries, hashes): (IntMap<u16, Vec<UEntryHeader>>, Vec<_>) = self
             .package_paths
             .par_iter()
@@ -139,7 +136,7 @@ impl PackageManager {
                         return None;
                     }
                 };
-                let entries = (pkg.pkg_id(), pkg.entries());
+                let entries = (pkg.pkg_id(), pkg.entries().to_vec());
 
                 let hashes = (pkg
                     .hash64_table()
@@ -232,13 +229,13 @@ impl PackageManager {
         self.read_tag(tag)
     }
 
-    pub fn get_entry(&self, tag: impl Into<TagHash>) -> anyhow::Result<UEntryHeader> {
-        let tag = tag.into();
-        self.get_or_load_pkg(tag.pkg_id())?
-            .entries()
+    pub fn get_entry(&self, tag: impl Into<TagHash>) -> Option<UEntryHeader> {
+        let tag: TagHash = tag.into();
+
+        self.package_entry_index
+            .get(&tag.pkg_id())?
             .get(tag.entry_index() as usize)
             .cloned()
-            .context(format!("Entry does not exist in pkg {:04x}", tag.pkg_id()))
     }
 
     /// Read any BinRead type

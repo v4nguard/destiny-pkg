@@ -97,7 +97,7 @@ pub trait Package: Send + Sync {
 
     // fn translate_hash64(&self, hash: u64) -> Option<TagHash>;
 
-    fn entries(&self) -> Vec<UEntryHeader>;
+    fn entries(&self) -> &[UEntryHeader];
 
     fn entry(&self, index: usize) -> Option<UEntryHeader>;
 
