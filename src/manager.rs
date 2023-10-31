@@ -1,8 +1,10 @@
+use crate::d2_shared::PackageNamedTagEntry;
 use crate::package::{Package, PackageVersion, UEntryHeader};
 use crate::tag::TagHash64;
 use crate::{oodle, TagHash};
 use anyhow::Context;
 use binrw::{BinRead, BinReaderExt};
+use itertools::Itertools;
 use nohash_hasher::IntMap;
 use parking_lot::RwLock;
 use rayon::prelude::*;
@@ -26,6 +28,7 @@ pub struct PackageManager {
     /// Every entry
     pub package_entry_index: IntMap<u16, Vec<UEntryHeader>>,
     pub hash64_table: IntMap<u64, HashTableEntryShort>,
+    pub named_tags: Vec<PackageNamedTagEntry>,
 
     /// Packages that are currently open for reading
     pkgs: RwLock<IntMap<u16, Arc<dyn Package>>>,
@@ -106,6 +109,7 @@ impl PackageManager {
             package_entry_index: Default::default(),
             hash64_table: Default::default(),
             pkgs: Default::default(),
+            named_tags: Default::default(),
         };
 
         if write_cache {
@@ -141,7 +145,7 @@ impl PackageManager {
     }
 
     pub fn build_lookup_tables(&mut self) {
-        let (entries, hashes): (IntMap<u16, Vec<UEntryHeader>>, Vec<_>) = self
+        let tables: Vec<_> = self
             .package_paths
             .par_iter()
             .filter_map(|(_, p)| {
@@ -155,7 +159,7 @@ impl PackageManager {
                 };
                 let entries = (pkg.pkg_id(), pkg.entries().to_vec());
 
-                let hashes = (pkg
+                let hashes = pkg
                     .hash64_table()
                     .iter()
                     .map(|h| {
@@ -167,14 +171,19 @@ impl PackageManager {
                             },
                         )
                     })
-                    .collect::<Vec<(u64, HashTableEntryShort)>>(),);
+                    .collect::<Vec<(u64, HashTableEntryShort)>>();
 
-                Some((entries, hashes))
+                let named_tags = pkg.named_tags();
+
+                Some((entries, hashes, named_tags))
             })
-            .unzip();
+            .collect();
+
+        let (entries, hashes, named_tags): (_, Vec<_>, Vec<_>) = tables.into_iter().multiunzip();
 
         self.package_entry_index = entries;
-        self.hash64_table = hashes.iter().flat_map(|(v,)| v.clone()).collect();
+        self.hash64_table = hashes.into_iter().flatten().collect();
+        self.named_tags = named_tags.into_iter().flatten().collect();
 
         info!("Loaded {} packages", self.package_entry_index.len());
     }

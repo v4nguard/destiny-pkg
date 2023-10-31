@@ -1,6 +1,7 @@
 use crate::d1_legacy::PackageD1Legacy;
 use crate::d2_beta::PackageD2Beta;
 use crate::d2_beyondlight::PackageD2BeyondLight;
+use crate::d2_shared::PackageNamedTagEntry;
 use crate::{PackageD2PreBL, TagHash};
 use anyhow::{anyhow, ensure};
 use std::io::{Read, Seek};
@@ -95,7 +96,7 @@ pub trait Package: Send + Sync {
     /// Does not apply to Destiny 1
     fn hash64_table(&self) -> Vec<UHashTableEntry>;
 
-    // fn translate_hash64(&self, hash: u64) -> Option<TagHash>;
+    fn named_tags(&self) -> Vec<PackageNamedTagEntry>;
 
     fn entries(&self) -> &[UEntryHeader];
 

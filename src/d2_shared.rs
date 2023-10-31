@@ -2,7 +2,7 @@ use crate::crypto::PkgGcmState;
 use crate::package::{ReadSeek, UEntryHeader, BLOCK_CACHE_SIZE};
 use crate::{oodle, PackageVersion, TagHash};
 use anyhow::Context;
-use binrw::BinRead;
+use binrw::{BinRead, BinReaderExt, NullString};
 use nohash_hasher::IntMap;
 use parking_lot::RwLock;
 use std::borrow::Cow;
@@ -233,5 +233,38 @@ impl PackageCommonD2 {
         }
 
         Ok(b)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct PackageNamedTagEntry {
+    pub hash: TagHash,
+    pub class_hash: u32,
+    pub name: String,
+}
+
+impl BinRead for PackageNamedTagEntry {
+    type Args<'a> = ();
+
+    fn read_options<R: Read + Seek>(
+        reader: &mut R,
+        endian: binrw::Endian,
+        _args: Self::Args<'_>,
+    ) -> binrw::BinResult<Self> {
+        let hash = reader.read_type(endian)?;
+        let class_hash = reader.read_type(endian)?;
+
+        let name_offset: u64 = reader.read_type(endian)?;
+        let pos_save = reader.stream_position()?;
+
+        reader.seek(SeekFrom::Start(pos_save - 8 + name_offset))?;
+        let name_cstring: NullString = reader.read_type(endian)?;
+        reader.seek(SeekFrom::Start(pos_save))?;
+
+        Ok(Self {
+            hash,
+            class_hash,
+            name: name_cstring.to_string(),
+        })
     }
 }

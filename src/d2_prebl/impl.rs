@@ -6,7 +6,7 @@ use std::sync::Arc;
 use binrw::{BinReaderExt, Endian, VecArgs};
 
 use crate::d2_prebl::structs::PackageHeader;
-use crate::d2_shared::{HashTableEntry, PackageCommonD2};
+use crate::d2_shared::{HashTableEntry, PackageCommonD2, PackageNamedTagEntry};
 use crate::package::{Package, ReadSeek, UEntryHeader, UHashTableEntry};
 use crate::PackageVersion;
 
@@ -102,6 +102,10 @@ impl Package for PackageD2PreBL {
                 reference: h.reference,
             })
             .collect()
+    }
+
+    fn named_tags(&self) -> Vec<PackageNamedTagEntry> {
+        vec![]
     }
 
     fn entries(&self) -> &[UEntryHeader] {

@@ -1,4 +1,5 @@
 use crate::d1_legacy::structs::{BlockHeader, EntryHeader, PackageHeader};
+use crate::d2_shared::PackageNamedTagEntry;
 use crate::oodle;
 use crate::package::{Package, ReadSeek, UEntryHeader, UHashTableEntry, BLOCK_CACHE_SIZE};
 use anyhow::Context;
@@ -135,6 +136,10 @@ impl Package for PackageD1Legacy {
     }
 
     fn hash64_table(&self) -> Vec<UHashTableEntry> {
+        vec![]
+    }
+
+    fn named_tags(&self) -> Vec<PackageNamedTagEntry> {
         vec![]
     }
 

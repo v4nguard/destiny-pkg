@@ -24,6 +24,10 @@ pub struct PackageHeader {
     pub block_table_size: u32,
     pub block_table_offset: u32,
 
+    #[br(seek_before = SeekFrom::Start(0x78))]
+    pub named_tag_table_size: u32,
+    pub named_tag_table_offset: u32,
+
     #[br(seek_before = SeekFrom::Start(0xb8))]
     pub h64_table_size: u32,
     pub h64_table_offset: u32,

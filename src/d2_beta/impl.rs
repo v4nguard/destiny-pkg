@@ -6,7 +6,7 @@ use std::sync::Arc;
 use binrw::{BinReaderExt, Endian, VecArgs};
 
 use crate::d2_beta::structs::PackageHeader;
-use crate::d2_shared::PackageCommonD2;
+use crate::d2_shared::{PackageCommonD2, PackageNamedTagEntry};
 use crate::package::{Package, ReadSeek, UEntryHeader, UHashTableEntry};
 use crate::PackageVersion;
 
@@ -76,6 +76,10 @@ impl Package for PackageD2Beta {
 
     fn hash64_table(&self) -> Vec<UHashTableEntry> {
         // TODO(cohae): Fix hashtable
+        vec![]
+    }
+
+    fn named_tags(&self) -> Vec<PackageNamedTagEntry> {
         vec![]
     }
 

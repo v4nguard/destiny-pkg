@@ -7,13 +7,14 @@ use anyhow::Context;
 use binrw::{BinReaderExt, Endian, VecArgs};
 
 use crate::d2_beyondlight::structs::PackageHeader;
-use crate::d2_shared::{HashTableEntry, PackageCommonD2};
+use crate::d2_shared::{HashTableEntry, PackageCommonD2, PackageNamedTagEntry};
 use crate::package::{Package, ReadSeek, UEntryHeader, UHashTableEntry};
 use crate::PackageVersion;
 
 pub struct PackageD2BeyondLight {
     common: PackageCommonD2,
     pub header: PackageHeader,
+    pub named_tags: Vec<PackageNamedTagEntry>,
 }
 
 unsafe impl Send for PackageD2BeyondLight {}
@@ -47,6 +48,12 @@ impl PackageD2BeyondLight {
             inner: (),
         })?;
 
+        reader.seek(SeekFrom::Start(header.named_tag_table_offset as u64 + 0x30))?;
+        let named_tags = reader.read_le_args(VecArgs {
+            count: header.named_tag_table_size as _,
+            inner: (),
+        })?;
+
         let hashes: Vec<HashTableEntry> = if header.h64_table_size != 0 {
             reader.seek(SeekFrom::Start((header.h64_table_offset + 0x50) as _))?;
             reader.read_le_args(VecArgs {
@@ -69,6 +76,7 @@ impl PackageD2BeyondLight {
                 path.to_string(),
             )?,
             header,
+            named_tags,
         })
     }
 }
@@ -97,6 +105,10 @@ impl Package for PackageD2BeyondLight {
                 reference: h.reference,
             })
             .collect()
+    }
+
+    fn named_tags(&self) -> Vec<PackageNamedTagEntry> {
+        self.named_tags.clone()
     }
 
     fn entries(&self) -> &[UEntryHeader] {
