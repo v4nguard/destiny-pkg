@@ -1,6 +1,6 @@
 use crate::package::{Package, PackageVersion, UEntryHeader};
 use crate::tag::TagHash64;
-use crate::TagHash;
+use crate::{oodle, TagHash};
 use anyhow::Context;
 use binrw::{BinRead, BinReaderExt};
 use nohash_hasher::IntMap;
@@ -39,6 +39,23 @@ impl PackageManager {
         // All the latest packages
         let mut packages: IntMap<u16, String> = Default::default();
 
+        let oo2core_3_path = packages_dir.as_ref().join("../bin/x64/oo2core_3_win64.dll");
+        let oo2core_9_path = packages_dir.as_ref().join("../bin/x64/oo2core_9_win64.dll");
+
+        if oo2core_3_path.exists() {
+            let mut o = oodle::OODLE_3.write();
+            if o.is_none() {
+                *o = oodle::Oodle::from_path(oo2core_3_path).ok();
+            }
+        }
+
+        if oo2core_9_path.exists() {
+            let mut o = oodle::OODLE_9.write();
+            if o.is_none() {
+                *o = oodle::Oodle::from_path(oo2core_9_path).ok();
+            }
+        }
+
         let write_cache = if let Some(cache) = Self::read_package_cache() {
             info!("Loading package cache");
             packages = cache;
@@ -64,7 +81,7 @@ impl PackageManager {
 
             debug_span!("Filter latest packages").in_scope(|| {
                 for p in packages_all {
-                    let parts: Vec<&str> = p.split("_").collect();
+                    let parts: Vec<&str> = p.split('_').collect();
                     if let Some(Ok(pkg_id)) = parts
                         .get(parts.len() - 2)
                         .map(|s| u16::from_str_radix(s, 16))
@@ -201,9 +218,10 @@ impl PackageManager {
                     .package_paths
                     .get(&pkg_id)
                     .context(format!("Couldn't get a path for package id {pkg_id:04x}"))?;
+
                 v.insert(
                     self.version
-                        .open(&package_path)
+                        .open(package_path)
                         .context(format!("Failed to open package '{package_path}'"))?,
                 )
                 .clone()

@@ -30,7 +30,7 @@ struct Args {
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    let package_manager = PackageManager::new(args.packages_path, args.version, true)?;
+    let package_manager = PackageManager::new(args.packages_path, args.version)?;
 
     for (t, e) in package_manager.get_all_by_reference(args.reference) {
         let pkg_path = package_manager.package_paths.get(&t.pkg_id()).unwrap();
