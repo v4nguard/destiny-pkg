@@ -38,9 +38,8 @@ impl PkgGcmState {
         match version {
             PackageVersion::Destiny2BeyondLight
             | PackageVersion::Destiny2WitchQueen
-            | PackageVersion::Destiny2Lightfall
-            | PackageVersion::Destiny2 => self.nonce[1] = 0xea,
-            PackageVersion::Destiny2Beta | PackageVersion::Destiny2PreBeyondLight => {
+            | PackageVersion::Destiny2Lightfall => self.nonce[1] = 0xea,
+            PackageVersion::Destiny2Beta | PackageVersion::Destiny2Shadowkeep => {
                 self.nonce[1] = 0xf9
             }
             u => panic!("Unsupported crypto for {u:?}"),

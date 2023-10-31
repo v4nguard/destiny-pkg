@@ -46,7 +46,7 @@ fn main() -> anyhow::Result<()> {
             .clone()
             .unwrap_or_else(|| format!("./out/{pkg_name}"));
 
-        let ext = if args.version == PackageVersion::Destiny2PreBeyondLight {
+        let ext = if args.version == PackageVersion::Destiny2Shadowkeep {
             classify_file_prebl(e.file_type, e.file_subtype)
         } else {
             "bin".to_string()

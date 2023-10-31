@@ -43,7 +43,7 @@ fn main() -> anyhow::Result<()> {
 
         let out_dir = args.output_dir.clone();
 
-        let ext = if args.version == PackageVersion::Destiny2PreBeyondLight {
+        let ext = if args.version == PackageVersion::Destiny2Shadowkeep {
             classify_file_prebl(entry.file_type, entry.file_subtype)
         } else {
             "bin".to_string()

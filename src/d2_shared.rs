@@ -178,18 +178,19 @@ impl PackageCommonD2 {
             let _decompressed_size = match self.version {
                 // Destiny 1
                 /*PackageVersion::DestinyInternalAlpha |*/
-                PackageVersion::DestinyLegacy | PackageVersion::Destiny => oodle::decompress_3,
+                PackageVersion::DestinyTheTakenKing | PackageVersion::DestinyRiseOfIron => {
+                    oodle::decompress_3
+                }
 
                 // Destiny 2 (Red War - Beyond Light)
-                PackageVersion::Destiny2Beta | PackageVersion::Destiny2PreBeyondLight => {
+                PackageVersion::Destiny2Beta | PackageVersion::Destiny2Shadowkeep => {
                     oodle::decompress_3
                 }
 
                 // Destiny 2 (Beyond Light - Latest)
                 PackageVersion::Destiny2BeyondLight
                 | PackageVersion::Destiny2WitchQueen
-                | PackageVersion::Destiny2Lightfall
-                | PackageVersion::Destiny2 => oodle::decompress_9,
+                | PackageVersion::Destiny2Lightfall => oodle::decompress_9,
             }(&block_data, &mut buffer)?;
 
             buffer

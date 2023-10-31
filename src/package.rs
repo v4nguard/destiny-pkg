@@ -4,6 +4,7 @@ use crate::d2_beyondlight::PackageD2BeyondLight;
 use crate::d2_shared::PackageNamedTagEntry;
 use crate::{PackageD2PreBL, TagHash};
 use anyhow::{anyhow, ensure};
+use clap::ValueEnum;
 use std::io::{Read, Seek};
 use std::sync::Arc;
 
@@ -35,53 +36,57 @@ pub enum PackageVersion {
     // #[value(name = "d1_internal_alpha")]
     // DestinyInternalAlpha,
     /// PS3/X360 version of Destiny (The Taken King)
-    #[value(name = "d1_legacy")]
-    DestinyLegacy,
+    #[value(name = "d1_ttk")]
+    DestinyTheTakenKing,
 
     /// The latest version of Destiny (Rise of Iron)
-    #[value(name = "d1")]
-    Destiny,
+    #[value(name = "d1_roi")]
+    DestinyRiseOfIron,
 
     /// Destiny 2 Beta
     #[value(name = "d2_beta")]
     Destiny2Beta,
 
     /// The last version of Destiny before Beyond Light (Shadowkeep/Season of Arrivals)
-    #[value(name = "d2_prebl")]
-    Destiny2PreBeyondLight,
+    #[value(name = "d2_sk")]
+    Destiny2Shadowkeep,
 
     /// Destiny 2 (Beyond Light/Season of the Lost)
-    #[value(name = "d2_beyondlight")]
+    #[value(name = "d2_bl")]
     Destiny2BeyondLight,
 
     /// Destiny 2 (Witch Queen/Season of the Seraph)
-    #[value(name = "d2_witchqueen")]
+    #[value(name = "d2_wq")]
     Destiny2WitchQueen,
 
     /// Destiny 2 (Lightfall)
-    #[value(name = "d2_lightfall")]
+    #[value(name = "d2_lf")]
     Destiny2Lightfall,
-
-    /// The latest version of Destiny 2 (alias for d2_lightfall)
-    #[value(name = "d2")]
-    Destiny2,
 }
 
 impl PackageVersion {
     pub fn open(&self, path: &str) -> anyhow::Result<Arc<dyn Package>> {
         Ok(match self {
             // PackageVersion::DestinyInternalAlpha => Arc::new(PackageD1InternalAlpha::open(path)?),
-            PackageVersion::DestinyLegacy => Arc::new(PackageD1Legacy::open(path)?),
-            PackageVersion::Destiny => {
+            PackageVersion::DestinyTheTakenKing => Arc::new(PackageD1Legacy::open(path)?),
+            PackageVersion::DestinyRiseOfIron => {
                 anyhow::bail!("The latest version of Destiny 1 is not supported yet")
             }
             PackageVersion::Destiny2Beta => Arc::new(PackageD2Beta::open(path)?),
-            PackageVersion::Destiny2PreBeyondLight => Arc::new(PackageD2PreBL::open(path)?),
+            PackageVersion::Destiny2Shadowkeep => Arc::new(PackageD2PreBL::open(path)?),
             PackageVersion::Destiny2BeyondLight
             | PackageVersion::Destiny2WitchQueen
-            | PackageVersion::Destiny2Lightfall
-            | PackageVersion::Destiny2 => Arc::new(PackageD2BeyondLight::open(path, *self)?),
+            | PackageVersion::Destiny2Lightfall => {
+                Arc::new(PackageD2BeyondLight::open(path, *self)?)
+            }
         })
+    }
+
+    pub fn id(&self) -> String {
+        self.to_possible_value()
+            .expect("Package version is missing an id/commandline value")
+            .get_name()
+            .to_string()
     }
 }
 

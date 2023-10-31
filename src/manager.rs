@@ -9,11 +9,13 @@ use nohash_hasher::IntMap;
 use parking_lot::RwLock;
 use rayon::prelude::*;
 use std::collections::hash_map::Entry;
-use std::fs;
+use std::collections::HashMap;
+use std::fs::{self, File};
 use std::io::Cursor;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use tracing::{debug_span, error, info};
+use std::time::SystemTime;
+use tracing::{debug_span, error, info, warn};
 
 #[derive(Clone, Copy)]
 pub struct HashTableEntryShort {
@@ -22,6 +24,7 @@ pub struct HashTableEntryShort {
 }
 
 pub struct PackageManager {
+    pub package_dir: PathBuf,
     pub package_paths: IntMap<u16, String>,
     pub version: PackageVersion,
 
@@ -59,12 +62,39 @@ impl PackageManager {
             }
         }
 
-        let write_cache = if let Some(cache) = Self::read_package_cache() {
+        let build_new_cache = if let Some(cache) = Self::read_package_cache(false) {
             info!("Loading package cache");
-            packages = cache;
-            false
+            if let Some(p) = cache.versions.get(&version.id()) {
+                let timestamp = fs::metadata(&packages_dir)
+                    .ok()
+                    .and_then(|m| {
+                        Some(
+                            m.modified()
+                                .ok()?
+                                .duration_since(SystemTime::UNIX_EPOCH)
+                                .ok()?
+                                .as_secs(),
+                        )
+                    })
+                    .unwrap_or(0);
+
+                if p.timestamp < timestamp {
+                    info!("Detected package directory changes, rebuilding cache");
+
+                    true
+                } else {
+                    packages = p.paths.clone();
+                    false
+                }
+            } else {
+                true
+            }
         } else {
-            info!("Creating new package cache");
+            true
+        };
+
+        if build_new_cache {
+            info!("Creating new package cache for {}", version.id());
             let path = packages_dir.as_ref();
             // Every package in the given directory, including every patch
             let mut packages_all = vec![];
@@ -99,11 +129,10 @@ impl PackageManager {
                     }
                 }
             });
-
-            true
-        };
+        }
 
         let mut s = Self {
+            package_dir: packages_dir.as_ref().to_path_buf(),
             package_paths: packages,
             version,
             package_entry_index: Default::default(),
@@ -112,7 +141,7 @@ impl PackageManager {
             named_tags: Default::default(),
         };
 
-        if write_cache {
+        if build_new_cache {
             s.write_package_cache().ok();
         }
 
@@ -121,27 +150,51 @@ impl PackageManager {
         Ok(s)
     }
 
-    fn read_package_cache() -> Option<IntMap<u16, String>> {
-        let mut packages: IntMap<u16, String> = Default::default();
-        if let Ok(s) = json::parse(&std::fs::read_to_string("package_cache.json").ok()?) {
-            for (id, path) in s["packages"].entries() {
-                packages.insert(id.parse::<u16>().ok()?, path.as_str()?.to_string());
+    fn read_package_cache(silent: bool) -> Option<PathCache> {
+        let cache: Option<PathCache> =
+            serde_json::from_reader(File::open(exe_relative_path("package_cache.json")).ok()?).ok();
+
+        if let Some(ref c) = cache {
+            if c.cache_version != PathCache::default().cache_version {
+                if !silent {
+                    warn!("Package cache is outdated, building a new one");
+                }
+                return None;
             }
         }
 
-        Some(packages)
+        cache
     }
 
     fn write_package_cache(&self) -> anyhow::Result<()> {
-        let mut s = json::object! {
-            packages: {}
-        };
+        let mut cache = Self::read_package_cache(true).unwrap_or_default();
+
+        let timestamp = fs::metadata(&self.package_dir)
+            .ok()
+            .and_then(|m| {
+                Some(
+                    m.modified()
+                        .ok()?
+                        .duration_since(SystemTime::UNIX_EPOCH)
+                        .ok()?
+                        .as_secs(),
+                )
+            })
+            .unwrap_or(0);
+
+        let version = self.version.id();
+        let entry = cache.versions.entry(version.clone()).or_default();
+        entry.timestamp = timestamp;
+        entry.paths.clear();
 
         for (id, path) in &self.package_paths {
-            s["packages"][id.to_string()] = path.to_string().into();
+            entry.paths.insert(*id, path.clone());
         }
 
-        Ok(std::fs::write("package_cache.json", s.to_string())?)
+        Ok(std::fs::write(
+            exe_relative_path("package_cache.json"),
+            serde_json::to_string_pretty(&cache)?,
+        )?)
     }
 
     pub fn build_lookup_tables(&mut self) {
@@ -285,4 +338,38 @@ impl PackageManager {
         let mut cursor = Cursor::new(&data);
         Ok(cursor.read_le()?)
     }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub(crate) struct PathCache {
+    cache_version: usize,
+    versions: HashMap<String, PathCacheEntry>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Default)]
+pub(crate) struct PathCacheEntry {
+    /// Timestamp of the packages directory
+    timestamp: u64,
+    paths: IntMap<u16, String>,
+}
+
+impl Default for PathCache {
+    fn default() -> Self {
+        PathCache {
+            cache_version: 2,
+            versions: Default::default(),
+        }
+    }
+}
+
+fn exe_directory() -> PathBuf {
+    std::env::current_exe()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .to_path_buf()
+}
+
+fn exe_relative_path(path: &str) -> PathBuf {
+    exe_directory().join(path)
 }

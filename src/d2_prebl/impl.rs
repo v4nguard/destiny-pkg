@@ -65,7 +65,7 @@ impl PackageD2PreBL {
         Ok(PackageD2PreBL {
             common: PackageCommonD2::new(
                 reader,
-                PackageVersion::Destiny2PreBeyondLight,
+                PackageVersion::Destiny2Shadowkeep,
                 header.pkg_id,
                 header.patch_id,
                 entries,

@@ -64,7 +64,7 @@ fn main() -> anyhow::Result<()> {
         }
         let ref_hash = TagHash(e.reference);
 
-        let ext = if args.version == PackageVersion::Destiny2PreBeyondLight {
+        let ext = if args.version == PackageVersion::Destiny2Shadowkeep {
             classify_file_prebl(e.file_type, e.file_subtype)
         } else {
             "bin".to_string()
