@@ -5,8 +5,9 @@ use std::{
     hash::Hash,
 };
 
-#[derive(BinRead, BinWrite, Copy, Clone, PartialEq, PartialOrd, Eq)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[derive(
+    BinRead, BinWrite, Copy, Clone, PartialEq, PartialOrd, Eq, serde::Serialize, serde::Deserialize,
+)]
 pub struct TagHash(pub u32);
 
 impl From<TagHash> for u32 {
@@ -99,8 +100,9 @@ impl Hash for TagHash {
     }
 }
 
-#[derive(BinRead, BinWrite, Copy, Clone, PartialEq, PartialOrd, Eq)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[derive(
+    BinRead, BinWrite, Copy, Clone, PartialEq, PartialOrd, Eq, serde::Serialize, serde::Deserialize,
+)]
 pub struct TagHash64(pub u64);
 
 impl TagHash64 {
