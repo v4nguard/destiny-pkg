@@ -20,3 +20,5 @@ pub use manager::PackageManager;
 pub use package::Package;
 pub use package::PackageVersion;
 pub use tag::{TagHash, TagHash64};
+
+pub use d2_shared::PackageNamedTagEntry;
