@@ -16,7 +16,7 @@ struct Args {
 }
 
 fn main() -> anyhow::Result<()> {
-    env_logger::init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     let args = Args::parse();
 
     let package_manager = PackageManager::new(args.packages_path, args.version)?;
