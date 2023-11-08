@@ -136,12 +136,13 @@ impl PackageCommonD2 {
                     f.read_exact(&mut data)?;
                 }
                 Entry::Vacant(e) => {
-                    let f = File::open(format!("{}_{}.pkg", self.path_base, bh.patch_id)).context(
-                        format!(
-                            "Failed to open package file {}_{}.pkg",
-                            self.path_base, bh.patch_id
-                        ),
-                    )?;
+                    let f = File::open(format!("{}_{}.pkg", self.path_base, bh.patch_id))
+                        .with_context(|| {
+                            format!(
+                                "Failed to open package file {}_{}.pkg",
+                                self.path_base, bh.patch_id
+                            )
+                        })?;
 
                     let f = e.insert(f);
                     f.seek(SeekFrom::Start(bh.offset as u64))?;

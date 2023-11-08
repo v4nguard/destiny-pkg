@@ -23,8 +23,14 @@ serde = { version = "1.0.188", features = ["derive"] }
 itertools = "0.11.0"
 serde_json = "1.0.108"
 
+[features]
+ignore_package_cache = []
+
 [dev-dependencies]
 env_logger = "0.10.0"
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+tracing-tracy = "0.10.4"
+tracy-client = "0.16.4"
 
 [package.metadata.appimage]
 auto_link = true

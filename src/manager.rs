@@ -10,12 +10,12 @@ use parking_lot::RwLock;
 use rayon::prelude::*;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
-use std::fs::{self, File};
+use std::fs::{self};
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::SystemTime;
-use tracing::{debug_span, error, info, warn};
+use tracing::{debug_span, error, info};
 
 #[derive(Clone, Copy)]
 pub struct HashTableEntryShort {
@@ -150,9 +150,29 @@ impl PackageManager {
         Ok(s)
     }
 
+    #[cfg(feature = "ignore_package_cache")]
     fn read_package_cache(silent: bool) -> Option<PathCache> {
-        let cache: Option<PathCache> =
-            serde_json::from_reader(File::open(exe_relative_path("package_cache.json")).ok()?).ok();
+        use tracing::warn;
+
+        if !silent {
+            warn!("Not loading tag cache: ignore_package_cache is enabled")
+        }
+        None
+    }
+
+    #[cfg(feature = "ignore_package_cache")]
+    fn write_package_cache(&self) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    #[cfg(not(feature = "ignore_package_cache"))]
+    fn read_package_cache(silent: bool) -> Option<PathCache> {
+        use tracing::warn;
+
+        let cache: Option<PathCache> = serde_json::from_reader(
+            std::fs::File::open(exe_relative_path("package_cache.json")).ok()?,
+        )
+        .ok();
 
         if let Some(ref c) = cache {
             if c.cache_version != PathCache::default().cache_version {
@@ -166,6 +186,7 @@ impl PackageManager {
         cache
     }
 
+    #[cfg(not(feature = "ignore_package_cache"))]
     fn write_package_cache(&self) -> anyhow::Result<()> {
         let mut cache = Self::read_package_cache(true).unwrap_or_default();
 
@@ -279,12 +300,12 @@ impl PackageManager {
                 let package_path = self
                     .package_paths
                     .get(&pkg_id)
-                    .context(format!("Couldn't get a path for package id {pkg_id:04x}"))?;
+                    .with_context(|| format!("Couldn't get a path for package id {pkg_id:04x}"))?;
 
                 v.insert(
                     self.version
                         .open(package_path)
-                        .context(format!("Failed to open package '{package_path}'"))?,
+                        .with_context(|| format!("Failed to open package '{package_path}'"))?,
                 )
                 .clone()
             }
@@ -362,6 +383,7 @@ impl Default for PathCache {
     }
 }
 
+#[cfg(not(feature = "ignore_package_cache"))]
 fn exe_directory() -> PathBuf {
     std::env::current_exe()
         .unwrap()
@@ -370,6 +392,7 @@ fn exe_directory() -> PathBuf {
         .to_path_buf()
 }
 
+#[cfg(not(feature = "ignore_package_cache"))]
 fn exe_relative_path(path: &str) -> PathBuf {
     exe_directory().join(path)
 }

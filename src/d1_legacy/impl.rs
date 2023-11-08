@@ -95,11 +95,13 @@ impl PackageD1Legacy {
                 .seek(SeekFrom::Start(bh.offset as u64))?;
             self.reader.write().read_exact(&mut data)?;
         } else {
-            let mut f =
-                File::open(format!("{}_{}.pkg", self.path_base, bh.patch_id)).context(format!(
-                    "Failed to open package file {}_{}.pkg",
-                    self.path_base, bh.patch_id
-                ))?;
+            let mut f = File::open(format!("{}_{}.pkg", self.path_base, bh.patch_id))
+                .with_context(|| {
+                    format!(
+                        "Failed to open package file {}_{}.pkg",
+                        self.path_base, bh.patch_id
+                    )
+                })?;
 
             f.seek(SeekFrom::Start(bh.offset as u64))?;
             f.read_exact(&mut data)?;
