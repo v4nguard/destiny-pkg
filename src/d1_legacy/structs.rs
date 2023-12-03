@@ -59,8 +59,10 @@ pub struct PackageHeader {
 pub struct EntryHeader {
     pub reference: u32,
 
-    pub flags: u16,
+    thing: u32,
+    #[br(calc = ((thing >> 24) & 0xff) as u8)]
     pub file_type: u8,
+    #[br(calc = (thing & 0xff) as u8)]
     pub file_subtype: u8,
 
     _block_info: u64,
@@ -68,7 +70,7 @@ pub struct EntryHeader {
     #[br(calc = _block_info as u32 & 0x3fff)]
     pub starting_block: u32,
 
-    #[br(calc = (_block_info >> 14) as u32 & 0x3FFF)]
+    #[br(calc = ((_block_info >> 14) as u32 & 0x3FFF) << 4)]
     pub starting_block_offset: u32,
 
     #[br(calc = (_block_info >> 28) as u32 & 0x3FFFFFFF)]
