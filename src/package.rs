@@ -4,6 +4,7 @@ use crate::d2_beyondlight::PackageD2BeyondLight;
 use crate::d2_shared::PackageNamedTagEntry;
 use crate::{PackageD2PreBL, TagHash};
 use anyhow::{anyhow, ensure};
+use binrw::Endian;
 use clap::ValueEnum;
 use std::io::{Read, Seek};
 use std::sync::Arc;
@@ -82,6 +83,18 @@ impl PackageVersion {
         })
     }
 
+    pub fn endian(&self) -> Endian {
+        match self {
+            PackageVersion::DestinyTheTakenKing => Endian::Big,
+            PackageVersion::DestinyRiseOfIron
+            | PackageVersion::Destiny2Beta
+            | PackageVersion::Destiny2Shadowkeep
+            | PackageVersion::Destiny2BeyondLight
+            | PackageVersion::Destiny2WitchQueen
+            | PackageVersion::Destiny2Lightfall => Endian::Little,
+        }
+    }
+
     pub fn is_d1(&self) -> bool {
         matches!(
             self,
@@ -105,6 +118,18 @@ impl PackageVersion {
             .expect("Package version is missing an id/commandline value")
             .get_name()
             .to_string()
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            PackageVersion::DestinyTheTakenKing => "Destiny: The Taken King",
+            PackageVersion::DestinyRiseOfIron => "Destiny: Rise of Iron",
+            PackageVersion::Destiny2Beta => "Destiny 2: Beta",
+            PackageVersion::Destiny2Shadowkeep => "Destiny 2: Shadowkeep",
+            PackageVersion::Destiny2BeyondLight => "Destiny 2: Beyond Light",
+            PackageVersion::Destiny2WitchQueen => "Destiny 2: Witch Queen",
+            PackageVersion::Destiny2Lightfall => "Destiny 2: Lightfall",
+        }
     }
 }
 
