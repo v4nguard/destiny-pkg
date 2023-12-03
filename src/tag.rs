@@ -59,7 +59,7 @@ impl TagHash {
 
     /// Does this hash look like a pkg hash?
     pub fn is_pkg_file(&self) -> bool {
-        self.is_some() && (0x10..0xa00).contains(&self.pkg_id())
+        self.is_some() && (0x0..0xa00).contains(&self.pkg_id())
     }
 
     pub fn pkg_id(&self) -> u16 {

@@ -12,6 +12,8 @@ use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
+use super::structs::NamedTagEntryD1;
+
 pub const BLOCK_SIZE: usize = 0x40000;
 
 pub struct PackageD1Legacy {
@@ -25,6 +27,7 @@ pub struct PackageD1Legacy {
 
     block_counter: AtomicUsize,
     block_cache: RwLock<IntMap<usize, (usize, Arc<Vec<u8>>)>>,
+    named_tags: Vec<PackageNamedTagEntry>,
 }
 
 unsafe impl Send for PackageD1Legacy {}
@@ -58,6 +61,13 @@ impl PackageD1Legacy {
                 .finalize(),
         )?;
 
+        reader.seek(SeekFrom::Start(header.named_tag_table_offset as u64))?;
+        let named_tags: Vec<NamedTagEntryD1> = reader.read_be_args(
+            VecArgs::builder()
+                .count(header.named_tag_table_size as usize)
+                .finalize(),
+        )?;
+
         let last_underscore_pos = path.rfind('_').unwrap();
         let path_base = path[..last_underscore_pos].to_owned();
 
@@ -82,6 +92,15 @@ impl PackageD1Legacy {
             blocks,
             block_counter: AtomicUsize::default(),
             block_cache: Default::default(),
+            // Remap named tags to D2 struct for convenience
+            named_tags: named_tags
+                .into_iter()
+                .map(|n: NamedTagEntryD1| PackageNamedTagEntry {
+                    hash: n.hash,
+                    class_hash: n.class_hash,
+                    name: String::from_utf8_lossy(&n.name).into_owned(),
+                })
+                .collect(),
         })
     }
 
@@ -115,8 +134,8 @@ impl PackageD1Legacy {
         let block_data = self.get_block_raw(block_index)?.to_vec();
 
         Ok(if (bh.flags & 0x100) != 0 {
-            let mut buffer = vec![0u8; BLOCK_SIZE];
-            let _decompressed_size = oodle::decompress_3(&block_data, &mut buffer)?;
+            let mut buffer = vec![0u8; BLOCK_SIZE + 0x10000];
+            let _decompressed_size = oodle::decompress_3(&block_data, &mut buffer[0..BLOCK_SIZE])?;
             buffer
         } else {
             block_data
@@ -137,12 +156,13 @@ impl Package for PackageD1Legacy {
         self.header.patch_id
     }
 
+    // TODO(cohae): Fix these APIs, we should just cache the result and only return a slice
     fn hash64_table(&self) -> Vec<UHashTableEntry> {
         vec![]
     }
 
     fn named_tags(&self) -> Vec<PackageNamedTagEntry> {
-        vec![]
+        self.named_tags.clone()
     }
 
     fn entries(&self) -> &[UEntryHeader] {

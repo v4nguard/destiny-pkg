@@ -70,7 +70,7 @@ impl PackageVersion {
             // PackageVersion::DestinyInternalAlpha => Arc::new(PackageD1InternalAlpha::open(path)?),
             PackageVersion::DestinyTheTakenKing => Arc::new(PackageD1Legacy::open(path)?),
             PackageVersion::DestinyRiseOfIron => {
-                anyhow::bail!("The latest version of Destiny 1 is not supported yet")
+                anyhow::bail!("The Destiny: Rise of Iron is not supported yet")
             }
             PackageVersion::Destiny2Beta => Arc::new(PackageD2Beta::open(path)?),
             PackageVersion::Destiny2Shadowkeep => Arc::new(PackageD2PreBL::open(path)?),
@@ -80,6 +80,24 @@ impl PackageVersion {
                 Arc::new(PackageD2BeyondLight::open(path, *self)?)
             }
         })
+    }
+
+    pub fn is_d1(&self) -> bool {
+        matches!(
+            self,
+            PackageVersion::DestinyTheTakenKing | PackageVersion::DestinyRiseOfIron
+        )
+    }
+
+    pub fn is_d2(&self) -> bool {
+        matches!(
+            self,
+            PackageVersion::Destiny2Beta
+                | PackageVersion::Destiny2Shadowkeep
+                | PackageVersion::Destiny2BeyondLight
+                | PackageVersion::Destiny2WitchQueen
+                | PackageVersion::Destiny2Lightfall
+        )
     }
 
     pub fn id(&self) -> String {

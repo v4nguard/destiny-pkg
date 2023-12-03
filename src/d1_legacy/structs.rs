@@ -1,6 +1,8 @@
 use binrw::{binrw, BinRead};
 use std::io::SeekFrom;
 
+use crate::TagHash;
+
 #[derive(BinRead, Debug)]
 #[br(repr = u16)]
 pub enum PackageLanguage {
@@ -44,6 +46,10 @@ pub struct PackageHeader {
     pub block_table_offset: u32,
     pub block_table_hash: [u8; 20],
 
+    pub named_tag_table_size: u32,
+    pub named_tag_table_offset: u32,
+    pub named_tag_table_hash: [u8; 20],
+
     #[br(seek_before = SeekFrom::Start(0x13c))]
     pub file_size: u32,
 }
@@ -65,7 +71,7 @@ pub struct EntryHeader {
     #[br(calc = (_block_info >> 14) as u32 & 0x3FFF)]
     pub starting_block_offset: u32,
 
-    #[br(calc = (_block_info >> 28) as u32)]
+    #[br(calc = (_block_info >> 28) as u32 & 0x3FFFFFFF)]
     pub file_size: u32,
 }
 
@@ -78,4 +84,11 @@ pub struct BlockHeader {
     pub patch_id: u16,
     pub flags: u16,
     pub hash: [u8; 20],
+}
+
+#[derive(BinRead, Debug, Clone)]
+pub struct NamedTagEntryD1 {
+    pub hash: TagHash,
+    pub class_hash: u32,
+    pub name: [u8; 60],
 }
