@@ -112,7 +112,7 @@ impl PackageD1Legacy {
             self.reader
                 .write()
                 .seek(SeekFrom::Start(bh.offset as u64))?;
-            self.reader.write().read_exact(&mut data)?;
+            let _ = self.reader.write().read(&mut data)?;
         } else {
             let mut f = File::open(format!("{}_{}.pkg", self.path_base, bh.patch_id))
                 .with_context(|| {
@@ -123,7 +123,7 @@ impl PackageD1Legacy {
                 })?;
 
             f.seek(SeekFrom::Start(bh.offset as u64))?;
-            f.read_exact(&mut data)?;
+            let _ = f.read(&mut data)?;
         };
 
         Ok(data)
