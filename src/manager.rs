@@ -349,7 +349,7 @@ impl PackageManager {
         let tag = tag.into();
         let data = self.read_tag(tag)?;
         let mut cursor = Cursor::new(&data);
-        Ok(cursor.read_le()?)
+        Ok(cursor.read_type(self.version.endian())?)
     }
 
     /// Read any BinRead type
@@ -359,7 +359,7 @@ impl PackageManager {
     {
         let data = self.read_tag64(hash)?;
         let mut cursor = Cursor::new(&data);
-        Ok(cursor.read_le()?)
+        Ok(cursor.read_type(self.version.endian())?)
     }
 }
 
