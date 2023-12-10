@@ -1,7 +1,9 @@
 use crate::d1_legacy::structs::{BlockHeader, EntryHeader, PackageHeader};
 use crate::d2_shared::PackageNamedTagEntry;
 use crate::oodle;
-use crate::package::{Package, ReadSeek, UEntryHeader, UHashTableEntry, BLOCK_CACHE_SIZE};
+use crate::package::{
+    Package, PackageLanguage, ReadSeek, UEntryHeader, UHashTableEntry, BLOCK_CACHE_SIZE,
+};
 use anyhow::Context;
 use binrw::{BinReaderExt, Endian, VecArgs};
 use nohash_hasher::IntMap;
@@ -171,6 +173,10 @@ impl Package for PackageD1Legacy {
 
     fn entry(&self, index: usize) -> Option<UEntryHeader> {
         self.entries_unified.get(index).cloned()
+    }
+
+    fn language(&self) -> PackageLanguage {
+        self.header.language
     }
 
     fn get_block(&self, block_index: usize) -> anyhow::Result<Arc<Vec<u8>>> {

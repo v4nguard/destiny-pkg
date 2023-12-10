@@ -4,7 +4,7 @@ use crate::d2_beyondlight::PackageD2BeyondLight;
 use crate::d2_shared::PackageNamedTagEntry;
 use crate::{PackageD2PreBL, TagHash};
 use anyhow::{anyhow, ensure};
-use binrw::Endian;
+use binrw::{BinRead, Endian};
 use clap::ValueEnum;
 use std::io::{Read, Seek};
 use std::sync::Arc;
@@ -29,6 +29,25 @@ pub struct UHashTableEntry {
     pub hash64: u64,
     pub hash32: TagHash,
     pub reference: TagHash,
+}
+
+#[derive(BinRead, Debug, Copy, Clone)]
+#[br(repr = u16)]
+pub enum PackageLanguage {
+    None = 0,
+    English = 1,
+    French = 2,
+    Italian = 3,
+    German = 4,
+    Spanish = 5,
+    Japanese = 6,
+    Portuguese = 7,
+}
+
+impl PackageLanguage {
+    pub fn english_or_none(&self) -> bool {
+        matches!(self, Self::None | Self::English)
+    }
 }
 
 #[derive(clap::ValueEnum, PartialEq, Debug, Clone, Copy)]
@@ -149,6 +168,10 @@ pub trait Package: Send + Sync {
     fn entries(&self) -> &[UEntryHeader];
 
     fn entry(&self, index: usize) -> Option<UEntryHeader>;
+
+    fn language(&self) -> PackageLanguage {
+        PackageLanguage::None
+    }
 
     /// Gets/reads a specific block from the file.
     /// It's recommended that the implementation caches blocks to prevent re-reads

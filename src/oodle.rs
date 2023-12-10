@@ -11,21 +11,48 @@ use libloading::os::unix as ll_impl;
 #[cfg(windows)]
 use libloading::os::windows as ll_impl;
 
+#[repr(u32)]
+enum OodleLzFuzzSafe {
+    No = 0,
+    Yes = 1,
+}
+
+#[repr(u32)]
+enum OodleLzCheckCRC {
+    No = 0,
+    Yes = 1,
+}
+
+#[repr(u32)]
+enum OodleLzVerbosity {
+    None = 0,
+    Minimal = 1,
+    Some = 2,
+    Lots = 3,
+}
+
+#[repr(u32)]
+enum OodleLzThreadPhase {
+    ThreadPhase1 = 1,
+    ThreadPhase2 = 2,
+    ThreadPhaseAll = 3,
+}
+
 type OodleLzDecompress = unsafe extern "C" fn(
-    *const u8,
-    i64,
-    *mut u8,
-    i64,
-    i32,
-    i32,
-    i64,
-    *mut c_void,
-    *mut c_void,
-    *mut c_void,
-    *mut c_void,
-    *mut c_void,
-    *const c_void,
-    i32,
+    compBuf: *const u8,
+    compBufSize: i64,
+    rawBuf: *mut u8,
+    rawLen: i64,
+    fuzzSafe: OodleLzFuzzSafe,
+    checkCRC: OodleLzCheckCRC,
+    verbosity: OodleLzVerbosity,
+    decBufBase: *mut c_void,
+    decBufSize: *mut c_void,
+    fpCallback: *mut c_void,
+    callbackUserData: *mut c_void,
+    decoderMemory: *mut c_void,
+    decoderMemorySize: *const c_void,
+    threadPhase: OodleLzThreadPhase,
 ) -> i64;
 
 #[derive(Clone, Copy)]
@@ -92,16 +119,16 @@ impl Oodle {
                 buffer.len() as i64,
                 output_buffer.as_mut_ptr(),
                 output_buffer.len() as i64,
-                0,
-                0,
-                0,
+                OodleLzFuzzSafe::Yes,
+                OodleLzCheckCRC::No,
+                OodleLzVerbosity::Minimal,
                 null_mut(),
                 null_mut(),
                 null_mut(),
                 null_mut(),
                 null_mut(),
                 null_mut(),
-                3,
+                OodleLzThreadPhase::ThreadPhaseAll,
             )
         }
     }

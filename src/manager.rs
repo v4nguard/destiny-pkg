@@ -124,7 +124,9 @@ impl PackageManager {
                         let _span = debug_span!("Open package to find package ID").entered();
                         // Take the long route and extract the package ID from the header
                         if let Ok(pkg) = version.open(&p) {
-                            packages.insert(pkg.pkg_id(), p);
+                            if pkg.language().english_or_none() {
+                                packages.insert(pkg.pkg_id(), p);
+                            }
                         }
                     }
                 }

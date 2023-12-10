@@ -1,20 +1,7 @@
 use binrw::{binrw, BinRead};
 use std::io::SeekFrom;
 
-use crate::TagHash;
-
-#[derive(BinRead, Debug)]
-#[br(repr = u16)]
-pub enum PackageLanguage {
-    None = 0,
-    English = 1,
-    French = 2,
-    Italian = 3,
-    German = 4,
-    Spanish = 5,
-    Japanese = 6,
-    Portuguese = 7,
-}
+use crate::{package::PackageLanguage, TagHash};
 
 #[derive(BinRead, Debug)]
 #[br(big)]
