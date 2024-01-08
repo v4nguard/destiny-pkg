@@ -46,7 +46,7 @@ impl TagHash {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.0 > 0x80800000
+        self.0 > 0x80800000 && self.0 <= 0x81ffffff
     }
 
     pub fn is_none(&self) -> bool {
