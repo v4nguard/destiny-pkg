@@ -13,6 +13,7 @@ use crate::PackageVersion;
 pub struct PackageD2PreBL {
     common: PackageCommonD2,
     pub header: PackageHeader,
+    pub named_tags: Vec<PackageNamedTagEntry>,
 }
 
 unsafe impl Send for PackageD2PreBL {}
@@ -49,13 +50,26 @@ impl PackageD2PreBL {
             inner: (),
         })?;
 
-        let hashes: Vec<HashTableEntry> = if header.unkf0_table_offset != 0 {
-            reader.seek(SeekFrom::Start((header.unkf0_table_offset + 48) as _))?;
+        let hashes: Vec<HashTableEntry> = if header.misc_data_offset != 0 {
+            reader.seek(SeekFrom::Start((header.misc_data_offset + 0x30) as _))?;
             let h64_table_size: u64 = reader.read_le()?;
             let real_h64_table_offset: u64 = reader.read_le()?;
             reader.seek(SeekFrom::Current(-8 + real_h64_table_offset as i64 + 16))?;
             reader.read_le_args(VecArgs {
                 count: h64_table_size as _,
+                inner: (),
+            })?
+        } else {
+            vec![]
+        };
+
+        let named_tags: Vec<PackageNamedTagEntry> = if header.misc_data_offset != 0 {
+            reader.seek(SeekFrom::Start((header.misc_data_offset + 0x10) as _))?;
+            let named_tags_size: u64 = reader.read_le()?;
+            let real_named_tags_offset: u64 = reader.read_le()?;
+            reader.seek(SeekFrom::Current(-8 + real_named_tags_offset as i64 + 16))?;
+            reader.read_le_args(VecArgs {
+                count: named_tags_size as _,
                 inner: (),
             })?
         } else {
@@ -74,6 +88,7 @@ impl PackageD2PreBL {
                 path.to_string(),
             )?,
             header,
+            named_tags
         })
     }
 }
@@ -105,7 +120,7 @@ impl Package for PackageD2PreBL {
     }
 
     fn named_tags(&self) -> Vec<PackageNamedTagEntry> {
-        vec![]
+        self.named_tags.clone()
     }
 
     fn entries(&self) -> &[UEntryHeader] {
