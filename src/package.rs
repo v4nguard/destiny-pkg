@@ -14,7 +14,7 @@ pub const BLOCK_CACHE_SIZE: usize = 128;
 pub trait ReadSeek: Read + Seek {}
 impl<R: Read + Seek> ReadSeek for R {}
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct UEntryHeader {
     pub reference: u32,
     pub file_type: u8,

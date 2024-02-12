@@ -342,7 +342,7 @@ impl PackageManager {
     }
 
     /// Read any BinRead type
-    pub fn read_tag_struct<'a, T: BinRead>(&self, tag: impl Into<TagHash>) -> anyhow::Result<T>
+    pub fn read_tag_binrw<'a, T: BinRead>(&self, tag: impl Into<TagHash>) -> anyhow::Result<T>
     where
         T::Args<'a>: Default + Clone,
     {
@@ -353,7 +353,7 @@ impl PackageManager {
     }
 
     /// Read any BinRead type
-    pub fn read_tag64_struct<'a, T: BinRead>(&self, hash: impl Into<TagHash64>) -> anyhow::Result<T>
+    pub fn read_tag64_binrw<'a, T: BinRead>(&self, hash: impl Into<TagHash64>) -> anyhow::Result<T>
     where
         T::Args<'a>: Default + Clone,
     {
