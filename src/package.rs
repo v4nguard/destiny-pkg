@@ -1,4 +1,5 @@
 use crate::d1_legacy::PackageD1Legacy;
+use crate::d1_roi::PackageD1RiseOfIron;
 use crate::d2_beta::PackageD2Beta;
 use crate::d2_beyondlight::PackageD2BeyondLight;
 use crate::d2_shared::PackageNamedTagEntry;
@@ -89,9 +90,7 @@ impl PackageVersion {
         Ok(match self {
             // PackageVersion::DestinyInternalAlpha => Arc::new(PackageD1InternalAlpha::open(path)?),
             PackageVersion::DestinyTheTakenKing => Arc::new(PackageD1Legacy::open(path)?),
-            PackageVersion::DestinyRiseOfIron => {
-                anyhow::bail!("The Destiny: Rise of Iron is not supported yet")
-            }
+            PackageVersion::DestinyRiseOfIron => Arc::new(PackageD1RiseOfIron::open(path)?),
             PackageVersion::Destiny2Beta => Arc::new(PackageD2Beta::open(path)?),
             PackageVersion::Destiny2Shadowkeep => Arc::new(PackageD2PreBL::open(path)?),
             PackageVersion::Destiny2BeyondLight

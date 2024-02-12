@@ -28,7 +28,7 @@ pub struct PackageHeader {
     pub block_table_size: u32,
 
     #[br(seek_before = SeekFrom::Start(0xf0))]
-    pub unkf0_table_offset: u32,
+    pub misc_data_offset: u32,
 
     #[br(seek_before = SeekFrom::Start(0x110))]
     #[br(map(|v: u32| v + 96))]
