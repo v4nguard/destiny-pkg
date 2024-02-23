@@ -3,8 +3,8 @@ use crate::package::{ReadSeek, UEntryHeader, BLOCK_CACHE_SIZE};
 use crate::{oodle, PackageVersion, TagHash};
 use anyhow::Context;
 use binrw::{BinRead, BinReaderExt, NullString};
-use nohash_hasher::IntMap;
 use parking_lot::RwLock;
+use rustc_hash::FxHashMap;
 use std::borrow::Cow;
 use std::collections::hash_map::Entry;
 use std::fs::File;
@@ -70,8 +70,8 @@ pub struct PackageCommonD2 {
 
     /// Used for purging old blocks
     pub(crate) block_counter: AtomicUsize,
-    pub(crate) block_cache: RwLock<IntMap<usize, (usize, Arc<Vec<u8>>)>>,
-    pub(crate) file_handles: RwLock<IntMap<usize, File>>,
+    pub(crate) block_cache: RwLock<FxHashMap<usize, (usize, Arc<Vec<u8>>)>>,
+    pub(crate) file_handles: RwLock<FxHashMap<usize, File>>,
 }
 
 impl PackageCommonD2 {

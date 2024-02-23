@@ -1,5 +1,4 @@
 use binrw::{BinRead, BinWrite};
-use nohash_hasher::IsEnabled;
 use std::{
     fmt::{Debug, Display, Formatter},
     hash::Hash,
@@ -93,7 +92,6 @@ impl Display for TagHash {
     }
 }
 
-impl IsEnabled for TagHash {}
 impl Hash for TagHash {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         state.write_u32(self.0)
@@ -139,7 +137,6 @@ impl Display for TagHash64 {
     }
 }
 
-impl IsEnabled for TagHash64 {}
 impl Hash for TagHash64 {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         state.write_u64(self.0)

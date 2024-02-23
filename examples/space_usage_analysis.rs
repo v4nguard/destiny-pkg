@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use clap::Parser;
 use destiny_pkg::{PackageManager, PackageVersion};
-use nohash_hasher::IntMap;
+use rustc_hash::FxHashMap;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None, disable_version_flag(true))]
@@ -21,7 +21,7 @@ fn main() -> anyhow::Result<()> {
 
     let package_manager = PackageManager::new(args.packages_path, args.version)?;
     let mut totals: HashMap<(u8, u8), (usize, usize)> = Default::default();
-    let mut references: IntMap<u32, (usize, usize)> = Default::default();
+    let mut references: FxHashMap<u32, (usize, usize)> = Default::default();
 
     for (_, entries) in package_manager.package_entry_index {
         for entry in entries {

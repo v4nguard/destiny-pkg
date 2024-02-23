@@ -5,9 +5,9 @@ use crate::{oodle, TagHash};
 use anyhow::Context;
 use binrw::{BinRead, BinReaderExt};
 use itertools::Itertools;
-use nohash_hasher::IntMap;
 use parking_lot::RwLock;
 use rayon::prelude::*;
+use rustc_hash::FxHashMap;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fs::{self};
@@ -17,7 +17,7 @@ use std::sync::Arc;
 use std::time::SystemTime;
 use tracing::{debug_span, error, info};
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct HashTableEntryShort {
     pub hash32: TagHash,
     pub reference: TagHash,
@@ -25,16 +25,16 @@ pub struct HashTableEntryShort {
 
 pub struct PackageManager {
     pub package_dir: PathBuf,
-    pub package_paths: IntMap<u16, PackagePath>,
+    pub package_paths: FxHashMap<u16, PackagePath>,
     pub version: PackageVersion,
 
     /// Every entry
-    pub package_entry_index: IntMap<u16, Vec<UEntryHeader>>,
-    pub hash64_table: IntMap<u64, HashTableEntryShort>,
+    pub package_entry_index: FxHashMap<u16, Vec<UEntryHeader>>,
+    pub hash64_table: HashMap<u64, HashTableEntryShort>,
     pub named_tags: Vec<PackageNamedTagEntry>,
 
     /// Packages that are currently open for reading
-    pkgs: RwLock<IntMap<u16, Arc<dyn Package>>>,
+    pkgs: RwLock<FxHashMap<u16, Arc<dyn Package>>>,
 }
 
 impl PackageManager {
@@ -43,7 +43,7 @@ impl PackageManager {
         version: PackageVersion,
     ) -> anyhow::Result<PackageManager> {
         // All the latest packages
-        let mut packages: IntMap<u16, String> = Default::default();
+        let mut packages: FxHashMap<u16, String> = Default::default();
 
         let oo2core_3_path = packages_dir.as_ref().join("../bin/x64/oo2core_3_win64.dll");
         let oo2core_9_path = packages_dir.as_ref().join("../bin/x64/oo2core_9_win64.dll");
@@ -382,7 +382,7 @@ pub(crate) struct PathCache {
 pub(crate) struct PathCacheEntry {
     /// Timestamp of the packages directory
     timestamp: u64,
-    paths: IntMap<u16, String>,
+    paths: FxHashMap<u16, String>,
 }
 
 impl Default for PathCache {

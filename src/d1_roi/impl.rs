@@ -6,8 +6,8 @@ use crate::package::{
 };
 use anyhow::Context;
 use binrw::{BinReaderExt, Endian, VecArgs};
-use nohash_hasher::IntMap;
 use parking_lot::RwLock;
+use rustc_hash::FxHashMap;
 use std::collections::hash_map::Entry;
 use std::fs::File;
 use std::io::{BufReader, Read, Seek, SeekFrom};
@@ -28,7 +28,7 @@ pub struct PackageD1RiseOfIron {
     path_base: String,
 
     block_counter: AtomicUsize,
-    block_cache: RwLock<IntMap<usize, (usize, Arc<Vec<u8>>)>>,
+    block_cache: RwLock<FxHashMap<usize, (usize, Arc<Vec<u8>>)>>,
     named_tags: Vec<PackageNamedTagEntry>,
 }
 

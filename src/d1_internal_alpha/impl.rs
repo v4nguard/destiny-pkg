@@ -3,7 +3,6 @@ use crate::oodle;
 use crate::package::{Package, ReadSeek, UEntryHeader, UHashTableEntry, BLOCK_CACHE_SIZE};
 use anyhow::Context;
 use binrw::{BinReaderExt, Endian, VecArgs};
-use nohash_hasher::IntMap;
 use parking_lot::RwLock;
 use std::collections::hash_map::Entry;
 use std::fs::File;
@@ -22,7 +21,7 @@ pub struct PackageD1InternalAlpha {
     path_base: String,
 
     block_counter: AtomicUsize,
-    block_cache: RwLock<IntMap<usize, (usize, Arc<Vec<u8>>)>>,
+    block_cache: RwLock<FxHashMap<usize, (usize, Arc<Vec<u8>>)>>,
 }
 
 unsafe impl Send for PackageD1InternalAlpha {}
