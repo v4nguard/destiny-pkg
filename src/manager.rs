@@ -341,6 +341,14 @@ impl PackageManager {
             .cloned()
     }
 
+    pub fn get_named_tag(&self, name: &str, class_hash: u32) -> Option<TagHash> {
+        self.named_tags
+            .iter()
+            .find(|n| n.name == name && n.class_hash == class_hash)
+            .map(|n| &n.hash)
+            .cloned()
+    }
+
     /// Read any BinRead type
     pub fn read_tag_binrw<'a, T: BinRead>(&self, tag: impl Into<TagHash>) -> anyhow::Result<T>
     where
