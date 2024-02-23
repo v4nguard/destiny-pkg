@@ -25,7 +25,7 @@ pub struct HashTableEntryShort {
 
 pub struct PackageManager {
     pub package_dir: PathBuf,
-    pub package_paths: IntMap<u16, String>,
+    pub package_paths: IntMap<u16, PackagePath>,
     pub version: PackageVersion,
 
     /// Every entry
@@ -135,7 +135,10 @@ impl PackageManager {
 
         let mut s = Self {
             package_dir: packages_dir.as_ref().to_path_buf(),
-            package_paths: packages,
+            package_paths: packages
+                .into_iter()
+                .map(|(id, p)| (id, PackagePath::parse_with_defaults(&p)))
+                .collect(),
             version,
             package_entry_index: Default::default(),
             hash64_table: Default::default(),
@@ -211,7 +214,7 @@ impl PackageManager {
         entry.paths.clear();
 
         for (id, path) in &self.package_paths {
-            entry.paths.insert(*id, path.clone());
+            entry.paths.insert(*id, path.path.clone());
         }
 
         Ok(std::fs::write(
@@ -225,11 +228,11 @@ impl PackageManager {
             .package_paths
             .par_iter()
             .filter_map(|(_, p)| {
-                let _span = debug_span!("Read package tables", package = p).entered();
-                let pkg = match self.version.open(p) {
+                let _span = debug_span!("Read package tables", package = p.path).entered();
+                let pkg = match self.version.open(&p.path) {
                     Ok(package) => package,
                     Err(e) => {
-                        error!("Failed to open package '{p}': {e}");
+                        error!("Failed to open package '{}': {e}", p.filename);
                         return None;
                     }
                 };
@@ -304,11 +307,9 @@ impl PackageManager {
                     .get(&pkg_id)
                     .with_context(|| format!("Couldn't get a path for package id {pkg_id:04x}"))?;
 
-                v.insert(
-                    self.version
-                        .open(package_path)
-                        .with_context(|| format!("Failed to open package '{package_path}'"))?,
-                )
+                v.insert(self.version.open(&package_path.path).with_context(|| {
+                    format!("Failed to open package '{}'", package_path.filename)
+                })?)
                 .clone()
             }
         })
@@ -405,4 +406,58 @@ fn exe_directory() -> PathBuf {
 #[cfg(not(feature = "ignore_package_cache"))]
 fn exe_relative_path(path: &str) -> PathBuf {
     exe_directory().join(path)
+}
+
+pub struct PackagePath {
+    /// eg. ps3, w64
+    pub platform: String,
+    /// eg. arch_fallen, dungeon_prophecy, europa
+    pub name: String,
+
+    /// eg. 0059, 043c, unp1, unp2
+    pub id: String,
+    pub patch: u8,
+
+    /// Full path to the package
+    pub path: String,
+    pub filename: String,
+}
+
+impl PackagePath {
+    /// Example path: ps3_arch_fallen_0059_0.pkg
+    pub fn parse(path: &str) -> Option<Self> {
+        let path_filename = Path::new(path).file_name()?.to_string_lossy();
+        let parts: Vec<&str> = path_filename.split('_').collect();
+        if parts.len() < 4 {
+            return None;
+        }
+
+        let platform = parts[0].to_string();
+        let name = parts[1..parts.len() - 2].join("_");
+        let id = parts[parts.len() - 2].to_string();
+        let patch = parts[parts.len() - 1].split('.').next()?.parse().ok()?;
+
+        Some(Self {
+            platform,
+            name,
+            id,
+            patch,
+            path: path.to_string(),
+            filename: path_filename.to_string(),
+        })
+    }
+
+    pub fn parse_with_defaults(path: &str) -> Self {
+        let path_filename = Path::new(path)
+            .file_name()
+            .map_or(path.to_string(), |p| p.to_string_lossy().to_string());
+        Self::parse(path).unwrap_or_else(|| Self {
+            platform: "unknown".to_string(),
+            name: "unknown".to_string(),
+            id: "unknown".to_string(),
+            patch: 0,
+            path: path.to_string(),
+            filename: path_filename,
+        })
+    }
 }

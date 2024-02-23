@@ -3,7 +3,6 @@ use destiny_pkg::package::classify_file_prebl;
 use destiny_pkg::{PackageManager, PackageVersion, TagHash};
 use std::fs::File;
 use std::io::Write;
-use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None, disable_version_flag(true))]
@@ -35,11 +34,7 @@ fn main() -> anyhow::Result<()> {
             continue;
         };
         let pkg_path = package_manager.package_paths.get(&tag.pkg_id()).unwrap();
-        let pkg_name = PathBuf::from(pkg_path)
-            .file_stem()
-            .unwrap()
-            .to_string_lossy()
-            .to_string();
+        let pkg_name = &pkg_path.filename;
 
         let out_dir = args.output_dir.clone();
 
