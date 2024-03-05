@@ -12,7 +12,7 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fs::{self};
 use std::io::Cursor;
-use std::path::{Path, PathBuf};
+use std::path::{Display, Path, PathBuf};
 use std::sync::Arc;
 use std::time::SystemTime;
 use tracing::{debug_span, error, info};
@@ -408,6 +408,7 @@ fn exe_relative_path(path: &str) -> PathBuf {
     exe_directory().join(path)
 }
 
+#[derive(Debug, Clone)]
 pub struct PackagePath {
     /// eg. ps3, w64
     pub platform: String,
@@ -459,5 +460,11 @@ impl PackagePath {
             path: path.to_string(),
             filename: path_filename,
         })
+    }
+}
+
+impl Display for PackagePath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.filename)
     }
 }
