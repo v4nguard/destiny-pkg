@@ -1,8 +1,7 @@
+use std::{fs::File, io::Write};
+
 use clap::Parser;
-use destiny_pkg::package::classify_file_prebl;
-use destiny_pkg::{PackageManager, PackageVersion, TagHash};
-use std::fs::File;
-use std::io::Write;
+use destiny_pkg::{package::classify_file_prebl, PackageManager, PackageVersion, TagHash};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None, disable_version_flag(true))]

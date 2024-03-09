@@ -1,20 +1,27 @@
-use crate::d1_roi::structs::{BlockHeader, EntryHeader, PackageHeader};
-use crate::d2_shared::PackageNamedTagEntry;
-use crate::oodle;
-use crate::package::{
-    Package, PackageLanguage, ReadSeek, UEntryHeader, UHashTableEntry, BLOCK_CACHE_SIZE,
+use std::{
+    collections::hash_map::Entry,
+    fs::File,
+    io::{BufReader, Read, Seek, SeekFrom},
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
 };
+
 use anyhow::Context;
 use binrw::{BinReaderExt, Endian, VecArgs};
 use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
-use std::collections::hash_map::Entry;
-use std::fs::File;
-use std::io::{BufReader, Read, Seek, SeekFrom};
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
 
 use super::structs::NamedTagEntryD1;
+use crate::{
+    d1_roi::structs::{BlockHeader, EntryHeader, PackageHeader},
+    d2_shared::PackageNamedTagEntry,
+    oodle,
+    package::{
+        Package, PackageLanguage, ReadSeek, UEntryHeader, UHashTableEntry, BLOCK_CACHE_SIZE,
+    },
+};
 
 pub const BLOCK_SIZE: usize = 0x40000;
 

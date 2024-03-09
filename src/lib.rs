@@ -15,13 +15,9 @@ pub mod manager;
 pub mod package;
 pub mod tag;
 
-pub use d2_prebl::PackageD2PreBL;
-
-pub use manager::PackageManager;
-pub use package::Package;
-pub use package::PackageVersion;
-pub use tag::{TagHash, TagHash64};
-
-pub use d2_shared::PackageNamedTagEntry;
-
 pub use binrw::Endian;
+pub use d2_prebl::PackageD2PreBL;
+pub use d2_shared::PackageNamedTagEntry;
+pub use manager::PackageManager;
+pub use package::{Package, PackageVersion};
+pub use tag::{TagHash, TagHash64};

@@ -1,22 +1,28 @@
-use crate::d2_shared::PackageNamedTagEntry;
-use crate::package::{Package, PackageVersion, UEntryHeader};
-use crate::tag::TagHash64;
-use crate::{oodle, TagHash};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    fmt::Display,
+    fs::{self},
+    io::Cursor,
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::SystemTime,
+};
+
 use anyhow::Context;
 use binrw::{BinRead, BinReaderExt};
 use itertools::Itertools;
 use parking_lot::RwLock;
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
-use std::fmt::Display;
-use std::fs::{self};
-use std::io::Cursor;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use std::time::SystemTime;
 use tracing::{debug_span, error, info};
+
+use crate::{
+    d2_shared::PackageNamedTagEntry,
+    oodle,
+    package::{Package, PackageVersion, UEntryHeader},
+    tag::TagHash64,
+    TagHash,
+};
 
 #[derive(Clone)]
 pub struct HashTableEntryShort {

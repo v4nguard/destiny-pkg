@@ -1,5 +1,6 @@
-use binrw::{binrw, BinRead};
 use std::io::SeekFrom;
+
+use binrw::{binrw, BinRead};
 
 use crate::{package::PackageLanguage, TagHash};
 

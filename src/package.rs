@@ -1,14 +1,16 @@
-use crate::d1_legacy::PackageD1Legacy;
-use crate::d1_roi::PackageD1RiseOfIron;
-use crate::d2_beta::PackageD2Beta;
-use crate::d2_beyondlight::PackageD2BeyondLight;
-use crate::d2_shared::PackageNamedTagEntry;
-use crate::{PackageD2PreBL, TagHash};
+use std::{
+    io::{Read, Seek},
+    sync::Arc,
+};
+
 use anyhow::{anyhow, ensure};
 use binrw::{BinRead, Endian};
 use clap::ValueEnum;
-use std::io::{Read, Seek};
-use std::sync::Arc;
+
+use crate::{
+    d1_legacy::PackageD1Legacy, d1_roi::PackageD1RiseOfIron, d2_beta::PackageD2Beta,
+    d2_beyondlight::PackageD2BeyondLight, d2_shared::PackageNamedTagEntry, PackageD2PreBL, TagHash,
+};
 
 pub const BLOCK_CACHE_SIZE: usize = 128;
 

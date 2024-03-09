@@ -1,6 +1,6 @@
+use std::{fmt::Debug, io::SeekFrom};
+
 use binrw::BinRead;
-use std::fmt::Debug;
-use std::io::SeekFrom;
 
 #[derive(BinRead, Debug)]
 pub struct PackageHeader {

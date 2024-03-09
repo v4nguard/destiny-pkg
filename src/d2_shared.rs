@@ -1,16 +1,25 @@
-use crate::crypto::PkgGcmState;
-use crate::package::{ReadSeek, UEntryHeader, BLOCK_CACHE_SIZE};
-use crate::{oodle, PackageVersion, TagHash};
+use std::{
+    borrow::Cow,
+    collections::hash_map::Entry,
+    fs::File,
+    io::{Read, Seek, SeekFrom},
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
+};
+
 use anyhow::Context;
 use binrw::{BinRead, BinReaderExt, NullString};
 use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
-use std::borrow::Cow;
-use std::collections::hash_map::Entry;
-use std::fs::File;
-use std::io::{Read, Seek, SeekFrom};
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
+
+use crate::{
+    crypto::PkgGcmState,
+    oodle,
+    package::{ReadSeek, UEntryHeader, BLOCK_CACHE_SIZE},
+    PackageVersion, TagHash,
+};
 
 #[derive(BinRead, Debug, Clone)]
 pub struct EntryHeader {

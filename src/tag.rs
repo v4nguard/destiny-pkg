@@ -1,8 +1,9 @@
-use binrw::{BinRead, BinWrite};
 use std::{
     fmt::{Debug, Display, Formatter},
     hash::Hash,
 };
+
+use binrw::{BinRead, BinWrite};
 
 #[derive(
     BinRead, BinWrite, Copy, Clone, PartialEq, PartialOrd, Eq, serde::Serialize, serde::Deserialize,

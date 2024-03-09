@@ -1,14 +1,17 @@
-use std::fs::File;
-use std::io::{BufReader, SeekFrom};
-
-use std::sync::Arc;
+use std::{
+    fs::File,
+    io::{BufReader, SeekFrom},
+    sync::Arc,
+};
 
 use binrw::{BinReaderExt, Endian, VecArgs};
 
-use crate::d2_prebl::structs::PackageHeader;
-use crate::d2_shared::{HashTableEntry, PackageCommonD2, PackageNamedTagEntry};
-use crate::package::{Package, ReadSeek, UEntryHeader, UHashTableEntry};
-use crate::PackageVersion;
+use crate::{
+    d2_prebl::structs::PackageHeader,
+    d2_shared::{HashTableEntry, PackageCommonD2, PackageNamedTagEntry},
+    package::{Package, ReadSeek, UEntryHeader, UHashTableEntry},
+    PackageVersion,
+};
 
 pub struct PackageD2PreBL {
     common: PackageCommonD2,
@@ -88,7 +91,7 @@ impl PackageD2PreBL {
                 path.to_string(),
             )?,
             header,
-            named_tags
+            named_tags,
         })
     }
 }

@@ -1,15 +1,18 @@
-use std::fs::File;
-use std::io::{BufReader, SeekFrom};
-
-use std::sync::Arc;
+use std::{
+    fs::File,
+    io::{BufReader, SeekFrom},
+    sync::Arc,
+};
 
 use anyhow::Context;
 use binrw::{BinReaderExt, Endian, VecArgs};
 
-use crate::d2_beyondlight::structs::PackageHeader;
-use crate::d2_shared::{HashTableEntry, PackageCommonD2, PackageNamedTagEntry};
-use crate::package::{Package, ReadSeek, UEntryHeader, UHashTableEntry};
-use crate::PackageVersion;
+use crate::{
+    d2_beyondlight::structs::PackageHeader,
+    d2_shared::{HashTableEntry, PackageCommonD2, PackageNamedTagEntry},
+    package::{Package, ReadSeek, UEntryHeader, UHashTableEntry},
+    PackageVersion,
+};
 
 pub struct PackageD2BeyondLight {
     common: PackageCommonD2,

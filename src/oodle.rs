@@ -1,15 +1,13 @@
-use lazy_static::lazy_static;
-use libloading::Library;
-use parking_lot::RwLock;
-use std::ffi::c_void;
-use std::path::Path;
-use std::ptr::null_mut;
-use tracing::info;
+use std::{ffi::c_void, path::Path, ptr::null_mut};
 
+use lazy_static::lazy_static;
 #[cfg(unix)]
 use libloading::os::unix as ll_impl;
 #[cfg(windows)]
 use libloading::os::windows as ll_impl;
+use libloading::Library;
+use parking_lot::RwLock;
+use tracing::info;
 
 #[repr(u32)]
 enum OodleLzFuzzSafe {
