@@ -2,7 +2,18 @@
 name = "destiny-pkg"
 version = "0.9.2"
 edition = "2021"
-authors = ["Lucas Cohaereo <cohaereo@protonmail.com>"]
+authors = [
+    "cohaereo <cohaereo@protonmail.com>",
+    "nblock <nblock@nblock.dev>"
+]
+description = "Destiny 1/2 Tiger package library and tools (unpacker, verification)"
+homepage = "https://github.com/v4nguard/destiny-pkg"
+repository = "https://github.com/v4nguard/destiny-pkg"
+license = "MIT"
+readme = "README.md"
+categories = ["data-structures", "compression", "encoding"]
+keywords = ["destiny", "pkg", "package", "bungie", "tiger"]
+include = ["**/*.rs", "Cargo.toml"]
 
 [dependencies]
 anyhow = "1"
