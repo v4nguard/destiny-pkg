@@ -353,8 +353,25 @@ impl PackageManager {
         self.named_tags
             .iter()
             .find(|n| n.name == name && n.class_hash == class_hash)
-            .map(|n| &n.hash)
-            .cloned()
+            .map(|n| n.hash)
+            .clone()
+    }
+
+    pub fn get_named_tags_by_class(&self, class_hash: u32) -> Vec<(String, TagHash)> {
+        self.named_tags
+            .iter()
+            .filter(|n| n.class_hash == class_hash)
+            .map(|n| (n.name.clone(), n.hash))
+            .collect()
+    }
+
+    /// Find the name of a tag by its hash, if it has one.
+    pub fn get_tag_name(&self, tag: impl Into<TagHash>) -> Option<String> {
+        let tag: TagHash = tag.into();
+        self.named_tags
+            .iter()
+            .find(|n| n.hash == tag)
+            .map(|n| n.name.clone())
     }
 
     /// Read any BinRead type
