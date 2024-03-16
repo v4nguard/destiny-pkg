@@ -354,7 +354,6 @@ impl PackageManager {
             .iter()
             .find(|n| n.name == name && n.class_hash == class_hash)
             .map(|n| n.hash)
-            .clone()
     }
 
     pub fn get_named_tags_by_class(&self, class_hash: u32) -> Vec<(String, TagHash)> {
