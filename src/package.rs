@@ -1,5 +1,6 @@
 use std::{
     io::{Read, Seek},
+    str::FromStr,
     sync::Arc,
 };
 
@@ -296,5 +297,36 @@ pub fn classify_file_prebl(ftype: u8, fsubtype: u8) -> String {
         }
         (8, _) => "8080".to_string(),
         _ => "bin".to_string(),
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum PackagePlatform {
+    PS3,
+    PS4,
+    X360,
+    Windows,
+}
+
+impl PackagePlatform {
+    pub fn endianness(&self) -> Endian {
+        match self {
+            Self::PS3 | Self::X360 => Endian::Big,
+            Self::PS4 | Self::Windows => Endian::Little,
+        }
+    }
+}
+
+impl FromStr for PackagePlatform {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "ps3" => Self::PS3,
+            "ps4" => Self::PS4,
+            "360" => Self::X360,
+            "w64" => Self::Windows,
+            s => return Err(anyhow!("Invalid platform '{s}'")),
+        })
     }
 }

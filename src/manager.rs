@@ -1,9 +1,10 @@
 use std::{
     collections::{hash_map::Entry, HashMap},
     fmt::Display,
-    fs::{self},
+    fs,
     io::Cursor,
     path::{Path, PathBuf},
+    str::FromStr,
     sync::Arc,
     time::SystemTime,
 };
@@ -14,12 +15,12 @@ use itertools::Itertools;
 use parking_lot::RwLock;
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
-use tracing::{debug_span, error, info};
+use tracing::{debug_span, error, info, warn};
 
 use crate::{
     d2_shared::PackageNamedTagEntry,
     oodle,
-    package::{Package, PackageVersion, UEntryHeader},
+    package::{Package, PackagePlatform, PackageVersion, UEntryHeader},
     tag::TagHash64,
     TagHash,
 };
@@ -34,6 +35,7 @@ pub struct PackageManager {
     pub package_dir: PathBuf,
     pub package_paths: FxHashMap<u16, PackagePath>,
     pub version: PackageVersion,
+    pub platform: PackagePlatform,
 
     /// Every entry
     pub package_entry_index: FxHashMap<u16, Vec<UEntryHeader>>,
@@ -140,12 +142,17 @@ impl PackageManager {
             });
         }
 
+        let package_paths: FxHashMap<u16, PackagePath> = packages
+            .into_iter()
+            .map(|(id, p)| (id, PackagePath::parse_with_defaults(&p)))
+            .collect();
+
+        let first_path = package_paths.values().next().context("No packages found")?;
+
         let mut s = Self {
             package_dir: packages_dir.as_ref().to_path_buf(),
-            package_paths: packages
-                .into_iter()
-                .map(|(id, p)| (id, PackagePath::parse_with_defaults(&p)))
-                .collect(),
+            platform: PackagePlatform::from_str(first_path.platform.as_str())?,
+            package_paths,
             version,
             package_entry_index: Default::default(),
             hash64_table: Default::default(),
@@ -164,8 +171,6 @@ impl PackageManager {
 
     #[cfg(feature = "ignore_package_cache")]
     fn read_package_cache(silent: bool) -> Option<PathCache> {
-        use tracing::warn;
-
         if !silent {
             warn!("Not loading tag cache: ignore_package_cache is enabled")
         }
@@ -179,8 +184,6 @@ impl PackageManager {
 
     #[cfg(not(feature = "ignore_package_cache"))]
     fn read_package_cache(silent: bool) -> Option<PathCache> {
-        use tracing::warn;
-
         let cache: Option<PathCache> = serde_json::from_reader(
             std::fs::File::open(exe_relative_path("package_cache.json")).ok()?,
         )

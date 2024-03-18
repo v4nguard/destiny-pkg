@@ -6,7 +6,16 @@ use std::{
 use binrw::{BinRead, BinWrite};
 
 #[derive(
-    BinRead, BinWrite, Copy, Clone, PartialEq, PartialOrd, Eq, Ord, serde::Serialize, serde::Deserialize,
+    BinRead,
+    BinWrite,
+    Copy,
+    Clone,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 pub struct TagHash(pub u32);
 
@@ -100,7 +109,16 @@ impl Hash for TagHash {
 }
 
 #[derive(
-    BinRead, BinWrite, Copy, Clone, PartialEq, PartialOrd, Eq, Ord, serde::Serialize, serde::Deserialize,
+    BinRead,
+    BinWrite,
+    Copy,
+    Clone,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 pub struct TagHash64(pub u64);
 
