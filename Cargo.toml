@@ -1,6 +1,6 @@
 [package]
 name = "destiny-pkg"
-version = "0.9.3"
+version = "0.9.4"
 edition = "2021"
 authors = ["cohaereo <cohaereo@protonmail.com>", "nblock <nblock@nblock.dev>"]
 description = "Destiny 1/2 Tiger package library and tools (unpacker, verification)"

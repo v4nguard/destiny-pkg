@@ -441,6 +441,9 @@ pub struct PackagePath {
     /// eg. arch_fallen, dungeon_prophecy, europa
     pub name: String,
 
+    /// 2-letter language code (en, fr, de, etc.)
+    pub language: Option<String>,
+
     /// eg. 0059, 043c, unp1, unp2
     pub id: String,
     pub patch: u8,
@@ -460,13 +463,22 @@ impl PackagePath {
         }
 
         let platform = parts[0].to_string();
-        let name = parts[1..parts.len() - 2].join("_");
-        let id = parts[parts.len() - 2].to_string();
+        let mut name = parts[1..parts.len() - 2].join("_");
+        let mut id = parts[parts.len() - 2].to_string();
+        let mut language = None;
+        if id.len() == 2 {
+            // ID is actually language code
+            language = Some(id.clone());
+            name = parts[1..parts.len() - 3].join("_");
+            id = parts[parts.len() - 3].to_string();
+        }
+
         let patch = parts[parts.len() - 1].split('.').next()?.parse().ok()?;
 
         Some(Self {
             platform,
             name,
+            language,
             id,
             patch,
             path: path.to_string(),
@@ -482,6 +494,7 @@ impl PackagePath {
             platform: "unknown".to_string(),
             name: "unknown".to_string(),
             id: "unknown".to_string(),
+            language: None,
             patch: 0,
             path: path.to_string(),
             filename: path_filename,
