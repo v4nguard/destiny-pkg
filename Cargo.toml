@@ -1,6 +1,6 @@
 [package]
 name = "destiny-pkg"
-version = "0.9.4"
+version = "0.9.6"
 edition = "2021"
 authors = ["cohaereo <cohaereo@protonmail.com>", "nblock <nblock@nblock.dev>"]
 description = "Destiny 1/2 Tiger package library and tools (unpacker, verification)"
@@ -16,6 +16,7 @@ include = ["**/*.rs", "Cargo.toml"]
 anyhow = "1"
 aes = "0.8"
 aes-gcm = "0.10"
+bincode = { version = "2.0.0-rc.3", optional = true }
 binrw = "0.12"
 lazy_static = "1.4.0"
 rayon = "1.7.0"
@@ -33,6 +34,7 @@ rustc-hash = "1.1.0"
 
 [features]
 ignore_package_cache = []
+bincode = ["dep:bincode"]
 
 [dev-dependencies]
 env_logger = "0.10.0"

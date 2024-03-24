@@ -17,6 +17,7 @@ use binrw::{BinRead, BinWrite};
     serde::Serialize,
     serde::Deserialize,
 )]
+#[cfg_attr(feature = "bincode", derive(bincode::Decode, bincode::Encode))]
 pub struct TagHash(pub u32);
 
 impl From<TagHash> for u32 {
@@ -120,6 +121,7 @@ impl Hash for TagHash {
     serde::Serialize,
     serde::Deserialize,
 )]
+#[cfg_attr(feature = "bincode", derive(bincode::Decode, bincode::Encode))]
 pub struct TagHash64(pub u64);
 
 impl TagHash64 {
