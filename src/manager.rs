@@ -310,20 +310,24 @@ impl PackageManager {
 
     fn get_or_load_pkg(&self, pkg_id: u16) -> anyhow::Result<Arc<dyn Package>> {
         let _span = tracing::debug_span!("PackageManager::get_or_Load_pkg").entered();
-        Ok(match self.pkgs.write().entry(pkg_id) {
-            Entry::Occupied(o) => o.get().clone(),
-            Entry::Vacant(v) => {
-                let package_path = self
-                    .package_paths
-                    .get(&pkg_id)
-                    .with_context(|| format!("Couldn't get a path for package id {pkg_id:04x}"))?;
+        let v = self.pkgs.read();
+        if let Some(pkg) = v.get(&pkg_id) {
+            Ok(Arc::clone(pkg))
+        } else {
+            drop(v);
+            let package_path = self
+                .package_paths
+                .get(&pkg_id)
+                .with_context(|| format!("Couldn't get a path for package id {pkg_id:04x}"))?;
 
-                v.insert(self.version.open(&package_path.path).with_context(|| {
-                    format!("Failed to open package '{}'", package_path.filename)
-                })?)
-                .clone()
-            }
-        })
+            let package = self
+                .version
+                .open(&package_path.path)
+                .with_context(|| format!("Failed to open package '{}'", package_path.filename))?;
+
+            self.pkgs.write().insert(pkg_id, Arc::clone(&package));
+            Ok(package)
+        }
     }
 
     pub fn read_tag(&self, tag: impl Into<TagHash>) -> anyhow::Result<Vec<u8>> {
