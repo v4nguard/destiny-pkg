@@ -309,6 +309,7 @@ impl PackageManager {
     }
 
     fn get_or_load_pkg(&self, pkg_id: u16) -> anyhow::Result<Arc<dyn Package>> {
+        let _span = tracing::debug_span!("PackageManager::get_or_Load_pkg").entered();
         Ok(match self.pkgs.write().entry(pkg_id) {
             Entry::Occupied(o) => o.get().clone(),
             Entry::Vacant(v) => {
@@ -326,11 +327,10 @@ impl PackageManager {
     }
 
     pub fn read_tag(&self, tag: impl Into<TagHash>) -> anyhow::Result<Vec<u8>> {
+        let _span = tracing::debug_span!("PackageManager::read_tag").entered();
         let tag = tag.into();
-        Ok(self
-            .get_or_load_pkg(tag.pkg_id())?
-            .read_entry(tag.entry_index() as _)?
-            .to_vec())
+        self.get_or_load_pkg(tag.pkg_id())?
+            .read_entry(tag.entry_index() as _)
     }
 
     pub fn read_tag64(&self, hash: impl Into<TagHash64>) -> anyhow::Result<Vec<u8>> {
