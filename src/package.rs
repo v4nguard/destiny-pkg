@@ -305,6 +305,7 @@ pub enum PackagePlatform {
     PS3,
     PS4,
     X360,
+    XOne,
     Windows,
 }
 
@@ -312,7 +313,7 @@ impl PackagePlatform {
     pub fn endianness(&self) -> Endian {
         match self {
             Self::PS3 | Self::X360 => Endian::Big,
-            Self::PS4 | Self::Windows => Endian::Little,
+            Self::XOne | Self::PS4 | Self::Windows => Endian::Little,
         }
     }
 }
@@ -326,6 +327,7 @@ impl FromStr for PackagePlatform {
             "ps4" => Self::PS4,
             "360" => Self::X360,
             "w64" => Self::Windows,
+            "xboxone" => Self::XOne,
             s => return Err(anyhow!("Invalid platform '{s}'")),
         })
     }
