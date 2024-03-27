@@ -89,7 +89,9 @@ impl PackageManager {
 
                 if p.timestamp < timestamp {
                     info!("Detected package directory changes, rebuilding cache");
-
+                    true
+                } else if p.base_path != packages_dir.as_ref().to_string_lossy() {
+                    warn!("Package directory path changed, rebuilding cache");
                     true
                 } else {
                     packages = p.paths.clone();
@@ -221,6 +223,7 @@ impl PackageManager {
         let version = self.version.id();
         let entry = cache.versions.entry(version.clone()).or_default();
         entry.timestamp = timestamp;
+        entry.base_path = self.package_dir.to_string_lossy().to_string();
         entry.paths.clear();
 
         for (id, path) in &self.package_paths {
@@ -309,7 +312,7 @@ impl PackageManager {
     }
 
     fn get_or_load_pkg(&self, pkg_id: u16) -> anyhow::Result<Arc<dyn Package>> {
-        let _span = tracing::debug_span!("PackageManager::get_or_Load_pkg").entered();
+        let _span = tracing::debug_span!("PackageManager::get_or_Load_pkg", pkg_id).entered();
         let v = self.pkgs.read();
         if let Some(pkg) = v.get(&pkg_id) {
             Ok(Arc::clone(pkg))
@@ -408,20 +411,21 @@ pub(crate) struct PathCache {
     versions: HashMap<String, PathCacheEntry>,
 }
 
+impl Default for PathCache {
+    fn default() -> Self {
+        PathCache {
+            cache_version: 3,
+            versions: Default::default(),
+        }
+    }
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Default)]
 pub(crate) struct PathCacheEntry {
     /// Timestamp of the packages directory
     timestamp: u64,
+    base_path: String,
     paths: FxHashMap<u16, String>,
-}
-
-impl Default for PathCache {
-    fn default() -> Self {
-        PathCache {
-            cache_version: 2,
-            versions: Default::default(),
-        }
-    }
 }
 
 #[cfg(not(feature = "ignore_package_cache"))]
