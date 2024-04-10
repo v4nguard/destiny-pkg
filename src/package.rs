@@ -9,8 +9,9 @@ use binrw::{BinRead, Endian};
 use clap::ValueEnum;
 
 use crate::{
-    d1_legacy::PackageD1Legacy, d1_roi::PackageD1RiseOfIron, d2_beta::PackageD2Beta,
-    d2_beyondlight::PackageD2BeyondLight, d2_shared::PackageNamedTagEntry, PackageD2PreBL, TagHash,
+    d1_internal_alpha::PackageD1InternalAlpha, d1_legacy::PackageD1Legacy,
+    d1_roi::PackageD1RiseOfIron, d2_beta::PackageD2Beta, d2_beyondlight::PackageD2BeyondLight,
+    d2_shared::PackageNamedTagEntry, PackageD2PreBL, TagHash,
 };
 
 pub const BLOCK_CACHE_SIZE: usize = 128;
@@ -56,9 +57,10 @@ impl PackageLanguage {
 
 #[derive(clap::ValueEnum, PartialEq, Debug, Clone, Copy)]
 pub enum PackageVersion {
-    // /// PS3/X360 version of Destiny (internal development alpha)
-    // #[value(name = "d1_internal_alpha")]
-    // DestinyInternalAlpha,
+    /// X360 december 2013 internal alpha version of Destiny
+    #[value(name = "d1_devalpha")]
+    DestinyInternalAlpha,
+
     /// PS3/X360 version of Destiny (The Taken King)
     #[value(name = "d1_ttk")]
     DestinyTheTakenKing,
@@ -91,7 +93,7 @@ pub enum PackageVersion {
 impl PackageVersion {
     pub fn open(&self, path: &str) -> anyhow::Result<Arc<dyn Package>> {
         Ok(match self {
-            // PackageVersion::DestinyInternalAlpha => Arc::new(PackageD1InternalAlpha::open(path)?),
+            PackageVersion::DestinyInternalAlpha => Arc::new(PackageD1InternalAlpha::open(path)?),
             PackageVersion::DestinyTheTakenKing => Arc::new(PackageD1Legacy::open(path)?),
             PackageVersion::DestinyRiseOfIron => Arc::new(PackageD1RiseOfIron::open(path)?),
             PackageVersion::Destiny2Beta => Arc::new(PackageD2Beta::open(path)?),
@@ -106,7 +108,9 @@ impl PackageVersion {
 
     pub fn endian(&self) -> Endian {
         match self {
-            PackageVersion::DestinyTheTakenKing => Endian::Big,
+            PackageVersion::DestinyInternalAlpha | PackageVersion::DestinyTheTakenKing => {
+                Endian::Big
+            }
             PackageVersion::DestinyRiseOfIron
             | PackageVersion::Destiny2Beta
             | PackageVersion::Destiny2Shadowkeep
@@ -119,7 +123,9 @@ impl PackageVersion {
     pub fn is_d1(&self) -> bool {
         matches!(
             self,
-            PackageVersion::DestinyTheTakenKing | PackageVersion::DestinyRiseOfIron
+            PackageVersion::DestinyInternalAlpha
+                | PackageVersion::DestinyTheTakenKing
+                | PackageVersion::DestinyRiseOfIron
         )
     }
 
@@ -143,6 +149,7 @@ impl PackageVersion {
 
     pub fn name(&self) -> &'static str {
         match self {
+            PackageVersion::DestinyInternalAlpha => "Destiny X360 Internal Alpha",
             PackageVersion::DestinyTheTakenKing => "Destiny: The Taken King",
             PackageVersion::DestinyRiseOfIron => "Destiny: Rise of Iron",
             PackageVersion::Destiny2Beta => "Destiny 2: Beta",

@@ -187,10 +187,9 @@ impl PackageCommonD2 {
             let mut buffer = vec![0u8; BLOCK_SIZE];
             let _decompressed_size = match self.version {
                 // Destiny 1
-                /*PackageVersion::DestinyInternalAlpha |*/
-                PackageVersion::DestinyTheTakenKing | PackageVersion::DestinyRiseOfIron => {
-                    oodle::decompress_3
-                }
+                PackageVersion::DestinyInternalAlpha
+                | PackageVersion::DestinyTheTakenKing
+                | PackageVersion::DestinyRiseOfIron => oodle::decompress_3,
 
                 // Destiny 2 (Red War - Beyond Light)
                 PackageVersion::Destiny2Beta | PackageVersion::Destiny2Shadowkeep => {

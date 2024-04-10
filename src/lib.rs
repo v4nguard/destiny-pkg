@@ -4,7 +4,7 @@ mod crypto;
 mod d2_shared;
 mod oodle;
 
-// mod d1_internal_alpha;
+mod d1_internal_alpha;
 mod d1_legacy;
 mod d1_roi;
 mod d2_beta;

@@ -1,21 +1,35 @@
-use crate::d1_internal_alpha::structs::{BlockHeader, EntryHeader, PackageHeader};
-use crate::oodle;
-use crate::package::{Package, ReadSeek, UEntryHeader, UHashTableEntry, BLOCK_CACHE_SIZE};
+use std::{
+    collections::hash_map::Entry,
+    fs::File,
+    io::{BufReader, Read, Seek, SeekFrom},
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
+};
+
 use anyhow::Context;
 use binrw::{BinReaderExt, Endian, VecArgs};
 use parking_lot::RwLock;
-use std::collections::hash_map::Entry;
-use std::fs::File;
-use std::io::{BufReader, Read, Seek, SeekFrom};
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
+use rustc_hash::FxHashMap;
+
+use crate::{
+    d1_internal_alpha::structs::{BlockHeader, EntryHeader, EntryHeader2, PackageHeader},
+    d1_roi::structs::NamedTagEntryD1,
+    oodle,
+    package::{Package, ReadSeek, UEntryHeader, UHashTableEntry, BLOCK_CACHE_SIZE},
+    PackageNamedTagEntry,
+};
 
 pub const BLOCK_SIZE: usize = 0x40000;
 
 pub struct PackageD1InternalAlpha {
     pub header: PackageHeader,
     entries: Vec<EntryHeader>,
+    entries2: Vec<EntryHeader2>,
+    unified_entries: Vec<UEntryHeader>,
     blocks: Vec<BlockHeader>,
+    named_tags: Vec<PackageNamedTagEntry>,
 
     reader: RwLock<Box<dyn ReadSeek>>,
     path_base: String,
@@ -42,30 +56,69 @@ impl PackageD1InternalAlpha {
         let header: PackageHeader = reader.read_be()?;
 
         reader.seek(SeekFrom::Start(header.entry_table_offset as u64))?;
-        let entries = reader.read_be_args(
+        let entries: Vec<EntryHeader> = reader.read_be_args(
             VecArgs::builder()
                 .count(header.entry_table_size as usize)
                 .finalize(),
         )?;
 
+        reader.seek(SeekFrom::Start(header.entry2_table_offset as u64))?;
+        let entries2: Vec<EntryHeader2> = reader.read_be_args(
+            VecArgs::builder()
+                .count(header.entry2_table_size as usize)
+                .finalize(),
+        )?;
+
         reader.seek(SeekFrom::Start(header.block_table_offset as u64))?;
-        let blocks = reader.read_be_args(
+        let blocks: Vec<BlockHeader> = reader.read_be_args(
             VecArgs::builder()
                 .count(header.block_table_size as usize)
+                .finalize(),
+        )?;
+
+        reader.seek(SeekFrom::Start(header.named_tag_table_offset as u64))?;
+        let named_tags: Vec<NamedTagEntryD1> = reader.read_be_args(
+            VecArgs::builder()
+                .count(header.named_tag_table_size as usize)
                 .finalize(),
         )?;
 
         let last_underscore_pos = path.rfind('_').unwrap();
         let path_base = path[..last_underscore_pos].to_owned();
 
+        let unified_entries = entries
+            .iter()
+            .map(|e| UEntryHeader {
+                reference: e.reference,
+                file_type: e.file_type,
+                file_subtype: e.file_subtype,
+                starting_block: e.starting_block,
+                starting_block_offset: e.starting_block_offset,
+                file_size: e.file_size,
+            })
+            .collect();
+
+        // assert_eq!(entries.len(), entries2.len());
+
         Ok(PackageD1InternalAlpha {
             path_base,
             reader: RwLock::new(Box::new(reader)),
             header,
             entries,
+            entries2,
+            unified_entries,
             blocks,
             block_counter: AtomicUsize::default(),
             block_cache: Default::default(),
+            // Remap named tags to D2 struct for convenience
+            named_tags: named_tags
+                .into_iter()
+                .map(|n: NamedTagEntryD1| PackageNamedTagEntry {
+                    hash: n.hash,
+                    class_hash: n.class_hash,
+                    name: String::from_utf8_lossy(&n.name).into_owned(),
+                })
+                .collect(),
         })
     }
 
@@ -73,32 +126,23 @@ impl PackageD1InternalAlpha {
         let bh = &self.blocks[block_index];
         let mut data = vec![0u8; bh.size as usize];
 
-        if self.patch_id() == bh.patch_id {
-            self.reader
-                .write()
-                .seek(SeekFrom::Start(bh.offset as u64))?;
-            self.reader.write().read_exact(&mut data)?;
-        } else {
-            let mut f = File::open(format!("{}_{}.pkg", self.path_base, bh.patch_id))
-                .with_context(|| {
-                    format!(
-                        "Failed to open package file {}_{}.pkg",
-                        self.path_base, bh.patch_id
-                    )
-                })?;
-
-            f.seek(SeekFrom::Start(bh.offset as u64))?;
-            f.read_exact(&mut data)?;
-        };
+        // cohae: Dev packages dont make use of patch ids, they're always 0, so just read from the current file
+        self.reader
+            .write()
+            .seek(SeekFrom::Start(bh.offset as u64))?;
+        self.reader.write().read_exact(&mut data)?;
 
         Ok(data)
     }
 
     fn read_block(&self, block_index: usize) -> anyhow::Result<Vec<u8>> {
-        let bh = &self.blocks[block_index];
+        let bh = &self
+            .blocks
+            .get(block_index)
+            .context("Block index out of bounds")?;
         let block_data = self.get_block_raw(block_index)?.to_vec();
 
-        Ok(if (bh.flags & 0x100) != 0 {
+        Ok(if (bh.flags & 0x1) != 0 {
             let mut buffer = vec![0u8; BLOCK_SIZE];
             let _decompressed_size = oodle::decompress_3(&block_data, &mut buffer)?;
             buffer
@@ -110,7 +154,7 @@ impl PackageD1InternalAlpha {
 
 impl Package for PackageD1InternalAlpha {
     fn endianness(&self) -> Endian {
-        Endian::Big // TODO(cohae): Not necessarily
+        Endian::Big
     }
 
     fn pkg_id(&self) -> u16 {
@@ -126,29 +170,16 @@ impl Package for PackageD1InternalAlpha {
         vec![]
     }
 
-    fn entries(&self) -> Vec<UEntryHeader> {
-        self.entries
-            .iter()
-            .map(|e| UEntryHeader {
-                reference: e.reference,
-                file_type: e.file_type,
-                file_subtype: e.file_subtype,
-                starting_block: e.starting_block,
-                starting_block_offset: e.starting_block_offset,
-                file_size: e.file_size,
-            })
-            .collect()
+    fn named_tags(&self) -> Vec<PackageNamedTagEntry> {
+        self.named_tags.clone()
+    }
+
+    fn entries(&self) -> &[UEntryHeader] {
+        &self.unified_entries
     }
 
     fn entry(&self, index: usize) -> Option<UEntryHeader> {
-        self.entries.get(index).map(|e| UEntryHeader {
-            reference: e.reference,
-            file_type: e.file_type,
-            file_subtype: e.file_subtype,
-            starting_block: e.starting_block,
-            starting_block_offset: e.starting_block_offset,
-            file_size: e.file_size,
-        })
+        self.unified_entries.get(index).cloned()
     }
 
     fn get_block(&self, block_index: usize) -> anyhow::Result<Arc<Vec<u8>>> {

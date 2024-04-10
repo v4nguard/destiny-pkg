@@ -73,7 +73,7 @@ impl TagHash {
     }
 
     pub fn pkg_id(&self) -> u16 {
-        ((self.0 - 0x80800000) >> 13) as u16
+        (self.0.wrapping_sub(0x80800000) >> 13) as u16
     }
 
     pub fn entry_index(&self) -> u16 {
