@@ -168,6 +168,10 @@ impl PackageCommonD2 {
         let _span = tracing::debug_span!("PackageCommonD2::read_block", block_index).entered();
 
         let bh = self.blocks[block_index].clone();
+        if (bh.flags & 0x8) != 0 {
+            return Err(anyhow::anyhow!("Block uses redacted keys"));
+        }
+
         let mut block_data = self.get_block_raw(block_index)?.to_vec();
 
         if (bh.flags & 0x2) != 0 {
