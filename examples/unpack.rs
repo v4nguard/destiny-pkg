@@ -1,6 +1,7 @@
 use std::{fs::File, io::Write, path::PathBuf};
 
 use clap::Parser;
+use clap_num::maybe_hex;
 use destiny_pkg::{package::classify_file_prebl, PackageVersion, TagHash};
 
 #[derive(Parser, Debug)]
@@ -25,6 +26,14 @@ struct Args {
     #[arg(long)]
     only_8080: bool,
 
+    #[arg(long, value_parser = maybe_hex::<u32>)]
+    reference: Option<u32>,
+
+    #[arg(long = "type")]
+    entry_type: Option<u8>,
+    #[arg(long = "subtype")]
+    entry_subtype: Option<u8>,
+
     /// Don't print files
     #[arg(short, long)]
     silent: bool,
@@ -43,6 +52,12 @@ fn main() -> anyhow::Result<()> {
         .to_string_lossy()
         .to_string();
 
+    let filter = EntryFilter {
+        entry_type: args.entry_type,
+        entry_subtype: args.entry_subtype,
+        reference: args.reference,
+    };
+
     let package = args.version.open(&args.package)?;
 
     let out_dir = args
@@ -52,7 +67,12 @@ fn main() -> anyhow::Result<()> {
     std::fs::create_dir_all(&out_dir).ok();
 
     println!("PKG {:04x}_{}", package.pkg_id(), package.patch_id());
-    for (i, e) in package.entries().iter().enumerate() {
+    for (i, e) in package
+        .entries()
+        .iter()
+        .enumerate()
+        .filter(|(_, e)| filter.matches(e))
+    {
         if (e.file_type != 8 && e.file_type != 16) && args.only_8080 {
             continue;
         }
@@ -104,4 +124,34 @@ fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+pub struct EntryFilter {
+    pub entry_type: Option<u8>,
+    pub entry_subtype: Option<u8>,
+    pub reference: Option<u32>,
+}
+
+impl EntryFilter {
+    pub fn matches(&self, entry: &destiny_pkg::package::UEntryHeader) -> bool {
+        if let Some(entry_type) = self.entry_type {
+            if entry.file_type != entry_type {
+                return false;
+            }
+        }
+
+        if let Some(entry_subtype) = self.entry_subtype {
+            if entry.file_subtype != entry_subtype {
+                return false;
+            }
+        }
+
+        if let Some(reference) = self.reference {
+            if entry.reference != reference {
+                return false;
+            }
+        }
+
+        true
+    }
 }
