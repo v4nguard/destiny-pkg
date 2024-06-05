@@ -62,13 +62,10 @@ impl PkgGcmState {
     fn shift_nonce(&mut self, pkg_id: u16, version: PackageVersion) {
         self.nonce[0] ^= (pkg_id >> 8) as u8;
         match version {
-            PackageVersion::Destiny2BeyondLight
-            | PackageVersion::Destiny2WitchQueen
-            | PackageVersion::Destiny2Lightfall => self.nonce[1] = 0xea,
             PackageVersion::Destiny2Beta | PackageVersion::Destiny2Shadowkeep => {
                 self.nonce[1] = 0xf9
             }
-            u => panic!("Unsupported crypto for {u:?}"),
+            _ => self.nonce[1] = 0xea,
         }
         self.nonce[11] ^= pkg_id as u8;
     }
@@ -91,7 +88,9 @@ impl PkgGcmState {
                 }
             }
 
-            return Err(anyhow::anyhow!("No working keys found for redacted PKG data block"));
+            return Err(anyhow::anyhow!(
+                "No working keys found for redacted PKG data block"
+            ));
         }
 
         let (cipher, nonce) = if (flags & 0x4) != 0 {

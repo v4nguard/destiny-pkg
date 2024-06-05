@@ -56,7 +56,6 @@ impl PackageLanguage {
 }
 
 #[derive(clap::ValueEnum, PartialEq, Debug, Clone, Copy)]
-#[non_exhaustive]
 pub enum PackageVersion {
     /// X360 december 2013 internal alpha version of Destiny
     #[value(name = "d1_devalpha")]
