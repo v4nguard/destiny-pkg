@@ -56,6 +56,7 @@ impl PackageLanguage {
 }
 
 #[derive(clap::ValueEnum, PartialEq, Debug, Clone, Copy)]
+#[non_exhaustive]
 pub enum PackageVersion {
     /// X360 december 2013 internal alpha version of Destiny
     #[value(name = "d1_devalpha")]
@@ -88,6 +89,9 @@ pub enum PackageVersion {
     /// Destiny 2 (Lightfall)
     #[value(name = "d2_lf")]
     Destiny2Lightfall,
+
+    #[value(name = "d2_tfs")]
+    Destiny2TheFinalShape,
 }
 
 impl PackageVersion {
@@ -100,7 +104,8 @@ impl PackageVersion {
             PackageVersion::Destiny2Shadowkeep => Arc::new(PackageD2PreBL::open(path)?),
             PackageVersion::Destiny2BeyondLight
             | PackageVersion::Destiny2WitchQueen
-            | PackageVersion::Destiny2Lightfall => {
+            | PackageVersion::Destiny2Lightfall
+            | PackageVersion::Destiny2TheFinalShape => {
                 Arc::new(PackageD2BeyondLight::open(path, *self)?)
             }
         })
@@ -111,12 +116,7 @@ impl PackageVersion {
             PackageVersion::DestinyInternalAlpha | PackageVersion::DestinyTheTakenKing => {
                 Endian::Big
             }
-            PackageVersion::DestinyRiseOfIron
-            | PackageVersion::Destiny2Beta
-            | PackageVersion::Destiny2Shadowkeep
-            | PackageVersion::Destiny2BeyondLight
-            | PackageVersion::Destiny2WitchQueen
-            | PackageVersion::Destiny2Lightfall => Endian::Little,
+            _ => Endian::Little,
         }
     }
 
@@ -157,6 +157,7 @@ impl PackageVersion {
             PackageVersion::Destiny2BeyondLight => "Destiny 2: Beyond Light",
             PackageVersion::Destiny2WitchQueen => "Destiny 2: Witch Queen",
             PackageVersion::Destiny2Lightfall => "Destiny 2: Lightfall",
+            PackageVersion::Destiny2TheFinalShape => "Destiny 2: The Final Shape",
         }
     }
 }
