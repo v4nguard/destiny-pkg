@@ -2,7 +2,7 @@ use std::{fs::File, io::Write, path::PathBuf};
 
 use clap::Parser;
 use clap_num::maybe_hex;
-use destiny_pkg::{package::classify_file_prebl, PackageVersion, TagHash};
+use destiny_pkg::{package::classify_file_prebl, GameVersion, TagHash};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None, disable_version_flag(true))]
@@ -20,7 +20,7 @@ struct Args {
 
     /// Version of the package to extract
     #[arg(short, value_enum)]
-    version: PackageVersion,
+    version: GameVersion,
 
     /// Only extract 8080 files
     #[arg(long)]
@@ -82,7 +82,7 @@ fn main() -> anyhow::Result<()> {
         }
         let ref_hash = TagHash(e.reference);
 
-        let ext = if args.version == PackageVersion::Destiny2Shadowkeep {
+        let ext = if args.version == GameVersion::Destiny2Shadowkeep {
             classify_file_prebl(e.file_type, e.file_subtype)
         } else {
             "bin".to_string()

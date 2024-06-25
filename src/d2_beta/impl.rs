@@ -10,7 +10,7 @@ use crate::{
     d2_beta::structs::PackageHeader,
     d2_shared::{PackageCommonD2, PackageNamedTagEntry},
     package::{Package, ReadSeek, UEntryHeader, UHashTableEntry},
-    PackageVersion,
+    GameVersion,
 };
 
 pub struct PackageD2Beta {
@@ -50,9 +50,10 @@ impl PackageD2Beta {
         Ok(PackageD2Beta {
             common: PackageCommonD2::new(
                 reader,
-                PackageVersion::Destiny2Beta,
+                GameVersion::Destiny2Beta,
                 header.pkg_id,
                 header.patch_id,
+                header.group_id,
                 entries,
                 blocks,
                 vec![],

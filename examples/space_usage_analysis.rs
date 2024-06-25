@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use clap::Parser;
-use destiny_pkg::{PackageManager, PackageVersion};
+use destiny_pkg::{GameVersion, PackageManager};
 use rustc_hash::FxHashMap;
 
 #[derive(Parser, Debug)]
@@ -12,7 +12,7 @@ struct Args {
 
     /// Version of the package to extract
     #[arg(short, value_enum)]
-    version: PackageVersion,
+    version: GameVersion,
 }
 
 fn main() -> anyhow::Result<()> {

@@ -7,7 +7,7 @@ use binrw::BinRead;
 pub struct PackageHeader {
     pub pkg_id: u16,
     pub _unk6: u16,
-    pub _unk8: u64,
+    pub group_id: u64,
     pub build_time: u64, // 0x10
     pub _unk18: u32,
     pub _unk1c: u32,

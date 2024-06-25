@@ -33,6 +33,7 @@ directory where you run destinypkgtool from. Check below for the version of oo2c
 | DestinyTheTakenKing   | `d1_ttk`      |
 | DestinyRiseOfIron     | `d1_roi`      |
 | Destiny2Beta          | `d2_beta`     |
+| Destiny2Forsaken      | `d2_fs`       |
 | Destiny2Shadowkeep    | `d2_sk`       |
 | Destiny2BeyondLight   | `d2_bl`       |
 | Destiny2WitchQueen    | `d2_wq`       |

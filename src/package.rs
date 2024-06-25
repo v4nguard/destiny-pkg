@@ -55,27 +55,30 @@ impl PackageLanguage {
     }
 }
 
-#[derive(clap::ValueEnum, PartialEq, Debug, Clone, Copy)]
-pub enum PackageVersion {
+#[derive(clap::ValueEnum, PartialEq, PartialOrd, Debug, Clone, Copy)]
+pub enum GameVersion {
     /// X360 december 2013 internal alpha version of Destiny
     #[value(name = "d1_devalpha")]
-    DestinyInternalAlpha,
+    DestinyInternalAlpha = 1_0500,
 
     /// PS3/X360 version of Destiny (The Taken King)
     #[value(name = "d1_ttk")]
-    DestinyTheTakenKing,
+    DestinyTheTakenKing = 1_2000,
 
     /// The latest version of Destiny (Rise of Iron)
     #[value(name = "d1_roi")]
-    DestinyRiseOfIron,
+    DestinyRiseOfIron = 1_2400,
 
     /// Destiny 2 Beta
     #[value(name = "d2_beta")]
-    Destiny2Beta,
+    Destiny2Beta = 2_1000,
+
+    #[value(name = "d2_fs")]
+    Destiny2Forsaken = 2_2000,
 
     /// The last version of Destiny before Beyond Light (Shadowkeep/Season of Arrivals)
     #[value(name = "d2_sk")]
-    Destiny2Shadowkeep,
+    Destiny2Shadowkeep = 2_2600,
 
     /// Destiny 2 (Beyond Light/Season of the Lost)
     #[value(name = "d2_bl")]
@@ -83,28 +86,32 @@ pub enum PackageVersion {
 
     /// Destiny 2 (Witch Queen/Season of the Seraph)
     #[value(name = "d2_wq")]
-    Destiny2WitchQueen,
+    Destiny2WitchQueen = 4000,
 
     /// Destiny 2 (Lightfall)
     #[value(name = "d2_lf")]
-    Destiny2Lightfall,
+    Destiny2Lightfall = 7000,
 
     #[value(name = "d2_tfs")]
-    Destiny2TheFinalShape,
+    Destiny2TheFinalShape = 8000,
 }
 
-impl PackageVersion {
+impl GameVersion {
     pub fn open(&self, path: &str) -> anyhow::Result<Arc<dyn Package>> {
         Ok(match self {
-            PackageVersion::DestinyInternalAlpha => Arc::new(PackageD1InternalAlpha::open(path)?),
-            PackageVersion::DestinyTheTakenKing => Arc::new(PackageD1Legacy::open(path)?),
-            PackageVersion::DestinyRiseOfIron => Arc::new(PackageD1RiseOfIron::open(path)?),
-            PackageVersion::Destiny2Beta => Arc::new(PackageD2Beta::open(path)?),
-            PackageVersion::Destiny2Shadowkeep => Arc::new(PackageD2PreBL::open(path)?),
-            PackageVersion::Destiny2BeyondLight
-            | PackageVersion::Destiny2WitchQueen
-            | PackageVersion::Destiny2Lightfall
-            | PackageVersion::Destiny2TheFinalShape => {
+            GameVersion::DestinyInternalAlpha => Arc::new(PackageD1InternalAlpha::open(path)?),
+            GameVersion::DestinyTheTakenKing => Arc::new(PackageD1Legacy::open(path)?),
+            GameVersion::DestinyRiseOfIron => Arc::new(PackageD1RiseOfIron::open(path)?),
+            GameVersion::Destiny2Beta => Arc::new(PackageD2Beta::open(path)?),
+
+            GameVersion::Destiny2Forsaken | GameVersion::Destiny2Shadowkeep => {
+                Arc::new(PackageD2PreBL::open(path)?)
+            }
+
+            GameVersion::Destiny2BeyondLight
+            | GameVersion::Destiny2WitchQueen
+            | GameVersion::Destiny2Lightfall
+            | GameVersion::Destiny2TheFinalShape => {
                 Arc::new(PackageD2BeyondLight::open(path, *self)?)
             }
         })
@@ -112,9 +119,7 @@ impl PackageVersion {
 
     pub fn endian(&self) -> Endian {
         match self {
-            PackageVersion::DestinyInternalAlpha | PackageVersion::DestinyTheTakenKing => {
-                Endian::Big
-            }
+            GameVersion::DestinyInternalAlpha | GameVersion::DestinyTheTakenKing => Endian::Big,
             _ => Endian::Little,
         }
     }
@@ -122,20 +127,20 @@ impl PackageVersion {
     pub fn is_d1(&self) -> bool {
         matches!(
             self,
-            PackageVersion::DestinyInternalAlpha
-                | PackageVersion::DestinyTheTakenKing
-                | PackageVersion::DestinyRiseOfIron
+            GameVersion::DestinyInternalAlpha
+                | GameVersion::DestinyTheTakenKing
+                | GameVersion::DestinyRiseOfIron
         )
     }
 
     pub fn is_d2(&self) -> bool {
         matches!(
             self,
-            PackageVersion::Destiny2Beta
-                | PackageVersion::Destiny2Shadowkeep
-                | PackageVersion::Destiny2BeyondLight
-                | PackageVersion::Destiny2WitchQueen
-                | PackageVersion::Destiny2Lightfall
+            GameVersion::Destiny2Beta
+                | GameVersion::Destiny2Shadowkeep
+                | GameVersion::Destiny2BeyondLight
+                | GameVersion::Destiny2WitchQueen
+                | GameVersion::Destiny2Lightfall
         )
     }
 
@@ -148,15 +153,16 @@ impl PackageVersion {
 
     pub fn name(&self) -> &'static str {
         match self {
-            PackageVersion::DestinyInternalAlpha => "Destiny X360 Internal Alpha",
-            PackageVersion::DestinyTheTakenKing => "Destiny: The Taken King",
-            PackageVersion::DestinyRiseOfIron => "Destiny: Rise of Iron",
-            PackageVersion::Destiny2Beta => "Destiny 2: Beta",
-            PackageVersion::Destiny2Shadowkeep => "Destiny 2: Shadowkeep",
-            PackageVersion::Destiny2BeyondLight => "Destiny 2: Beyond Light",
-            PackageVersion::Destiny2WitchQueen => "Destiny 2: Witch Queen",
-            PackageVersion::Destiny2Lightfall => "Destiny 2: Lightfall",
-            PackageVersion::Destiny2TheFinalShape => "Destiny 2: The Final Shape",
+            GameVersion::DestinyInternalAlpha => "Destiny X360 Internal Alpha",
+            GameVersion::DestinyTheTakenKing => "Destiny: The Taken King",
+            GameVersion::DestinyRiseOfIron => "Destiny: Rise of Iron",
+            GameVersion::Destiny2Beta => "Destiny 2: Beta",
+            GameVersion::Destiny2Forsaken => "Destiny 2: Forsaken",
+            GameVersion::Destiny2Shadowkeep => "Destiny 2: Shadowkeep",
+            GameVersion::Destiny2BeyondLight => "Destiny 2: Beyond Light",
+            GameVersion::Destiny2WitchQueen => "Destiny 2: Witch Queen",
+            GameVersion::Destiny2Lightfall => "Destiny 2: Lightfall",
+            GameVersion::Destiny2TheFinalShape => "Destiny 2: The Final Shape",
         }
     }
 }

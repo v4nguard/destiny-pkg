@@ -20,7 +20,7 @@ use tracing::{debug_span, error, info, warn};
 use crate::{
     d2_shared::PackageNamedTagEntry,
     oodle,
-    package::{Package, PackagePlatform, PackageVersion, UEntryHeader},
+    package::{GameVersion, Package, PackagePlatform, UEntryHeader},
     tag::TagHash64,
     TagHash,
 };
@@ -34,7 +34,7 @@ pub struct HashTableEntryShort {
 pub struct PackageManager {
     pub package_dir: PathBuf,
     pub package_paths: FxHashMap<u16, PackagePath>,
-    pub version: PackageVersion,
+    pub version: GameVersion,
     pub platform: PackagePlatform,
 
     /// Every entry
@@ -49,7 +49,7 @@ pub struct PackageManager {
 impl PackageManager {
     pub fn new<P: AsRef<Path>>(
         packages_dir: P,
-        version: PackageVersion,
+        version: GameVersion,
     ) -> anyhow::Result<PackageManager> {
         // All the latest packages
         let mut packages: FxHashMap<u16, String> = Default::default();

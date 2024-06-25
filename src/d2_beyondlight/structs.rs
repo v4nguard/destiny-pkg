@@ -7,6 +7,9 @@ pub struct PackageHeader {
     #[br(assert(version == (53, 2)))]
     pub version: (u16, u16),
 
+    #[br(seek_before = SeekFrom::Start(0x8))]
+    pub group_id: u64,
+
     #[br(seek_before = SeekFrom::Start(0x10))]
     pub pkg_id: u16,
     #[br(seek_before = SeekFrom::Start(0x20))]

@@ -1,5 +1,5 @@
 use clap::Parser;
-use destiny_pkg::{PackageManager, PackageVersion};
+use destiny_pkg::{GameVersion, PackageManager};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None, disable_version_flag(true))]
@@ -9,7 +9,7 @@ struct Args {
 
     /// Version of the package
     #[arg(short, value_enum)]
-    version: PackageVersion,
+    version: GameVersion,
 }
 
 fn main() -> anyhow::Result<()> {
