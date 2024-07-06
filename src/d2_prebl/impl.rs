@@ -24,7 +24,7 @@ unsafe impl Sync for PackageD2PreBL {}
 
 impl PackageD2PreBL {
     pub fn open(path: &str) -> anyhow::Result<PackageD2PreBL> {
-        let _span = tracing::info_span!("PackageD2PreBL::open", path);
+        let _span = tracing::trace_span!("PackageD2PreBL::open", path);
         let reader = BufReader::new(File::open(path)?);
 
         Self::from_reader(path, reader)
@@ -34,7 +34,7 @@ impl PackageD2PreBL {
         path: &str,
         reader: R,
     ) -> anyhow::Result<PackageD2PreBL> {
-        let _span = tracing::info_span!("PackageD2PreBL::from_reader", path);
+        let _span = tracing::trace_span!("PackageD2PreBL::from_reader", path);
         let mut reader = reader;
         let header: PackageHeader = reader.read_le()?;
 
