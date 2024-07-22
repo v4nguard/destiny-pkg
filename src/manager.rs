@@ -50,6 +50,7 @@ impl PackageManager {
     pub fn new<P: AsRef<Path>>(
         packages_dir: P,
         version: GameVersion,
+        platform: Option<PackagePlatform>,
     ) -> anyhow::Result<PackageManager> {
         // All the latest packages
         let mut packages: FxHashMap<u16, String> = Default::default();
@@ -73,7 +74,7 @@ impl PackageManager {
 
         let build_new_cache = if let Some(cache) = Self::read_package_cache(false) {
             info!("Loading package cache");
-            if let Some(p) = cache.versions.get(&version.id()) {
+            if let Some(p) = cache.get_paths(version, platform, Some(packages_dir.as_ref()))? {
                 let timestamp = fs::metadata(&packages_dir)
                     .ok()
                     .and_then(|m| {
@@ -90,7 +91,7 @@ impl PackageManager {
                 if p.timestamp < timestamp {
                     info!("Detected package directory changes, rebuilding cache");
                     true
-                } else if p.base_path != packages_dir.as_ref().to_string_lossy() {
+                } else if p.base_path != packages_dir.as_ref() {
                     warn!("Package directory path changed, rebuilding cache");
                     true
                 } else {
@@ -192,7 +193,7 @@ impl PackageManager {
         .ok();
 
         if let Some(ref c) = cache {
-            if c.cache_version != PathCache::default().cache_version {
+            if c.cache_version != PathCache::VERSION {
                 if !silent {
                     warn!("Package cache is outdated, building a new one");
                 }
@@ -220,10 +221,19 @@ impl PackageManager {
             })
             .unwrap_or(0);
 
-        let version = self.version.id();
-        let entry = cache.versions.entry(version.clone()).or_default();
+        let entry = cache
+            .versions
+            .entry(self.cache_key())
+            .or_insert_with(|| PathCacheEntry {
+                timestamp,
+                version: self.version,
+                platform: self.platform,
+                base_path: self.package_dir.clone(),
+                paths: Default::default(),
+            });
+
         entry.timestamp = timestamp;
-        entry.base_path = self.package_dir.to_string_lossy().to_string();
+        entry.base_path = self.package_dir.clone();
         entry.paths.clear();
 
         for (id, path) in &self.package_paths {
@@ -234,6 +244,12 @@ impl PackageManager {
             exe_relative_path("package_cache.json"),
             serde_json::to_string_pretty(&cache)?,
         )?)
+    }
+
+    /// Generates a key unique to the game version + platform combination
+    /// eg. GameVersion::DestinyTheTakenKing and PackagePlatform::PS4 generates cache key "d1_ttk_ps4"
+    pub fn cache_key(&self) -> String {
+        format!("{}_{}", self.version.id(), self.platform)
     }
 
     pub fn build_lookup_tables(&mut self) {
@@ -279,7 +295,9 @@ impl PackageManager {
 
         info!("Loaded {} packages", self.package_entry_index.len());
     }
+}
 
+impl PackageManager {
     pub fn get_all_by_reference(&self, reference: u32) -> Vec<(TagHash, UEntryHeader)> {
         self.package_entry_index
             .par_iter()
@@ -413,18 +431,62 @@ pub(crate) struct PathCache {
 
 impl Default for PathCache {
     fn default() -> Self {
-        PathCache {
-            cache_version: 3,
-            versions: Default::default(),
+        Self {
+            cache_version: Self::VERSION,
+            versions: HashMap::new(),
         }
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Default)]
+impl PathCache {
+    pub const VERSION: usize = 4;
+
+    /// Gets path cache entry by version and platform
+    /// If `platform` is None, the first
+    /// This function will return an error if there are multiple entries for the same version when `platform` is None
+    pub fn get_paths(
+        &self,
+        version: GameVersion,
+        platform: Option<PackagePlatform>,
+        base_path: Option<&Path>,
+    ) -> anyhow::Result<Option<&PathCacheEntry>> {
+        if let Some(platform) = platform {
+            return Ok(self.versions.get(&format!("{}_{}", version.id(), platform)));
+        }
+
+        let mut matches = self
+            .versions
+            .iter()
+            .filter(|(k, v)| {
+                v.version == version && platform.map(|p| v.platform == p).unwrap_or(true)
+            })
+            .map(|(_, v)| v)
+            .collect_vec();
+
+        if matches.len() > 1 {
+            if let Some(base_path) = base_path {
+                matches.retain(|c| c.base_path == base_path)
+            }
+        }
+
+        if matches.len() > 1 {
+            anyhow::bail!(
+                "There is more than one cache entry for version '{}', but no platform was given",
+                version.name()
+            );
+        }
+
+        Ok(matches.first().map(|v| *v))
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct PathCacheEntry {
     /// Timestamp of the packages directory
     timestamp: u64,
-    base_path: String,
+    version: GameVersion,
+    platform: PackagePlatform,
+    base_path: PathBuf,
     paths: FxHashMap<u16, String>,
 }
 

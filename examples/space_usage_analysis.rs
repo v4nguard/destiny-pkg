@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use clap::Parser;
-use destiny_pkg::{GameVersion, PackageManager};
+use destiny_pkg::{package::PackagePlatform, GameVersion, PackageManager};
 use rustc_hash::FxHashMap;
 
 #[derive(Parser, Debug)]
@@ -13,13 +13,16 @@ struct Args {
     /// Version of the package to extract
     #[arg(short, value_enum)]
     version: GameVersion,
+
+    #[arg(short, value_enum)]
+    platform: Option<PackagePlatform>,
 }
 
 fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     let args = Args::parse();
 
-    let package_manager = PackageManager::new(args.packages_path, args.version)?;
+    let package_manager = PackageManager::new(args.packages_path, args.version, args.platform)?;
     let mut totals: HashMap<(u8, u8), (usize, usize)> = Default::default();
     let mut references: FxHashMap<u32, (usize, usize)> = Default::default();
 

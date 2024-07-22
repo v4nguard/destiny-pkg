@@ -1,4 +1,5 @@
 use std::{
+    fmt::{Display, Formatter},
     io::{Read, Seek},
     str::FromStr,
     sync::Arc,
@@ -55,7 +56,9 @@ impl PackageLanguage {
     }
 }
 
-#[derive(clap::ValueEnum, PartialEq, PartialOrd, Debug, Clone, Copy)]
+#[derive(
+    serde::Serialize, serde::Deserialize, clap::ValueEnum, PartialEq, PartialOrd, Debug, Clone, Copy,
+)]
 pub enum GameVersion {
     /// X360 december 2013 internal alpha version of Destiny
     #[value(name = "d1_devalpha")]
@@ -313,12 +316,14 @@ pub fn classify_file_prebl(ftype: u8, fsubtype: u8) -> String {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(
+    serde::Serialize, serde::Deserialize, clap::ValueEnum, PartialEq, Eq, Debug, Clone, Copy,
+)]
 pub enum PackagePlatform {
     PS3,
     PS4,
     X360,
-    XOne,
+    XboxOne,
     Windows,
 }
 
@@ -326,7 +331,7 @@ impl PackagePlatform {
     pub fn endianness(&self) -> Endian {
         match self {
             Self::PS3 | Self::X360 => Endian::Big,
-            Self::XOne | Self::PS4 | Self::Windows => Endian::Little,
+            Self::XboxOne | Self::PS4 | Self::Windows => Endian::Little,
         }
     }
 }
@@ -340,8 +345,20 @@ impl FromStr for PackagePlatform {
             "ps4" => Self::PS4,
             "360" => Self::X360,
             "w64" => Self::Windows,
-            "xboxone" => Self::XOne,
+            "xboxone" => Self::XboxOne,
             s => return Err(anyhow!("Invalid platform '{s}'")),
         })
+    }
+}
+
+impl Display for PackagePlatform {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PackagePlatform::PS3 => f.write_str("ps3"),
+            PackagePlatform::PS4 => f.write_str("ps4"),
+            PackagePlatform::X360 => f.write_str("360"),
+            PackagePlatform::XboxOne => f.write_str("xboxone"),
+            PackagePlatform::Windows => f.write_str("w64"),
+        }
     }
 }

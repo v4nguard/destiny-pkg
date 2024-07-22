@@ -42,14 +42,10 @@ directory where you run destinypkgtool from. Check below for the version of oo2c
 
 ## Platform codes
 
-> [!NOTE]
-> These are not used by destiny-pkg yet. They will be used to separate platforms for the same version of the game in the
-> package path cache
-
-| Platform      | Code   |
-|---------------|--------|
-| Xbox 360      | `x360` |
-| Xbox One      | `xone` |
-| PlayStation 3 | `ps3`  |
-| PlayStation 4 | `ps4`  |
-| Windows (x64) | `w64`  |
+| Platform      | Code      |
+|---------------|-----------|
+| Xbox 360      | `x360`    |
+| Xbox One      | `xboxone` |
+| PlayStation 3 | `ps3`     |
+| PlayStation 4 | `ps4`     |
+| Windows (x64) | `w64`     |

@@ -1,7 +1,10 @@
 use std::{fs::File, io::Write};
 
 use clap::Parser;
-use destiny_pkg::{package::classify_file_prebl, GameVersion, PackageManager, TagHash};
+use destiny_pkg::{
+    package::{classify_file_prebl, PackagePlatform},
+    GameVersion, PackageManager, TagHash,
+};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None, disable_version_flag(true))]
@@ -21,12 +24,15 @@ struct Args {
     /// Version of the package to extract
     #[arg(short, value_enum)]
     version: GameVersion,
+
+    #[arg(short, value_enum)]
+    platform: Option<PackagePlatform>,
 }
 
 fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     let args = Args::parse();
-    let package_manager = PackageManager::new(args.packages_path, args.version)?;
+    let package_manager = PackageManager::new(args.packages_path, args.version, args.platform)?;
 
     for (tag, _) in package_manager.get_all_by_type(args.entry_type, args.entry_subtype) {
         let Some(entry) = package_manager.get_entry(tag) else {
