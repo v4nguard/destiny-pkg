@@ -16,14 +16,12 @@ directory where you run destinypkgtool from. Check below for the version of oo2c
 
 | Version                         | Platform          | Works? | Oodle DLL |
 |---------------------------------|-------------------|--------|-----------|
-| Destiny Internal Alpha          | X360              | 🚧*    | oo2core_3 |               
-| Destiny Legacy (The Taken King) | PS3/X360/PS4/XONE | 🚧*    | oo2core_3 |
+| Destiny Internal Alpha          | X360              | ✅      | oo2core_3 |               
+| Destiny Legacy (The Taken King) | PS3/X360/PS4/XONE | ✅      | oo2core_3 |
 | Destiny (Rise of Iron)          | PS4/XONE          | ✅      | oo2core_3 |
 | Destiny 2 (Beta)                | Any               | ✅      | oo2core_3 |
 | Destiny 2 (Pre-BL)              | Any               | ✅      | oo2core_3 |
 | Destiny 2 (Post-BL)             | Any               | ✅      | oo2core_9 |
-
-*Pre-ROI packages are supported, but package entry types haven't been figured out yet.
 
 ## Game version codes
 
