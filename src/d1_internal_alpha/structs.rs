@@ -51,7 +51,7 @@ pub struct EntryHeader {
     pub reference: u32,
 
     _thing: u32,
-    #[br(calc = (_thing >> 16) as u8)]
+    #[br(calc = (_thing >> 18) as u8)]
     pub file_type: u8,
     #[br(calc = (_thing & 0xff) as u8)]
     pub file_subtype: u8,

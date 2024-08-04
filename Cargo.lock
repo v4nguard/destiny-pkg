@@ -345,7 +345,7 @@ dependencies = [
 
 [[package]]
 name = "destiny-pkg"
-version = "0.12.1"
+version = "0.12.2"
 dependencies = [
  "aes",
  "aes-gcm",
