@@ -3,8 +3,11 @@ use std::{fmt::Debug, io::SeekFrom};
 use binrw::BinRead;
 
 #[derive(BinRead, Debug)]
-#[br(magic = 0x20026_u32)]
 pub struct PackageHeader {
+    #[br(assert(version == 38))]
+    pub version: u16,
+    pub platform: u16,
+
     pub pkg_id: u16,
     pub _unk6: u16,
     pub group_id: u64,

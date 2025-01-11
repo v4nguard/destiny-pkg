@@ -16,7 +16,10 @@ pub enum PackageLanguage {
 #[derive(BinRead, Debug)]
 #[br(big)]
 pub struct PackageHeader {
-    pub magic: u32,
+    #[br(assert(version == 11))]
+    pub version: u16,
+    pub platform: u16,
+    
     pub pkg_id: u16,
     pub patch: u16,
     pub _unk8: u64,
