@@ -9,7 +9,7 @@ use binrw::{BinReaderExt, Endian, VecArgs};
 use crate::{
     d2_beta::structs::PackageHeader,
     d2_shared::{PackageCommonD2, PackageNamedTagEntry},
-    package::{Package, ReadSeek, UEntryHeader, UHashTableEntry},
+    package::{Package, PackageLanguage, ReadSeek, UEntryHeader, UHashTableEntry},
     GameVersion,
 };
 
@@ -58,6 +58,7 @@ impl PackageD2Beta {
                 blocks,
                 vec![],
                 path.to_string(),
+                header.language,
             )?,
             header,
         })
@@ -76,6 +77,10 @@ impl Package for PackageD2Beta {
 
     fn patch_id(&self) -> u16 {
         self.common.patch_id
+    }
+
+    fn language(&self) -> PackageLanguage {
+        self.common.language
     }
 
     fn hash64_table(&self) -> Vec<UHashTableEntry> {

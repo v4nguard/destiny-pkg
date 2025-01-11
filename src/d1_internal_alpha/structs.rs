@@ -1,17 +1,6 @@
 use binrw::{binrw, BinRead};
 
-#[derive(BinRead, Debug)]
-#[br(repr = u16)]
-pub enum PackageLanguage {
-    None = 0,
-    English = 1,
-    French = 2,
-    Italian = 3,
-    German = 4,
-    Spanish = 5,
-    Japanese = 6,
-    Portuguese = 7,
-}
+use crate::package::PackageLanguage;
 
 #[derive(BinRead, Debug)]
 #[br(big)]
@@ -19,13 +8,14 @@ pub struct PackageHeader {
     #[br(assert(version == 11))]
     pub version: u16,
     pub platform: u16,
-    
+
     pub pkg_id: u16,
     pub patch: u16,
     pub _unk8: u64,
     pub build_time: u64,
     pub _unk_buildid: u32,
-    pub _unk1c: u32,
+    pub _unk1c: u16,
+    pub language: PackageLanguage,
 
     #[brw(count = 128)]
     #[br(map = |s: Vec<u8>| String::from_utf8_lossy(&s).to_string().trim_end_matches('\0').to_string())]

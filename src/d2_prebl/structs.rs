@@ -2,6 +2,8 @@ use std::{fmt::Debug, io::SeekFrom};
 
 use binrw::BinRead;
 
+use crate::package::PackageLanguage;
+
 #[derive(BinRead, Debug)]
 pub struct PackageHeader {
     #[br(assert(version == 38))]
@@ -15,7 +17,7 @@ pub struct PackageHeader {
     pub _unk18: u32,
     pub _unk1c: u32,
     pub patch_id: u16, // 0x20
-    pub _unk22: u16,
+    pub language: PackageLanguage,
 
     #[brw(count = 128)]
     #[br(map = |s: Vec<u8>| String::from_utf8_lossy(&s).trim_end_matches('\0').to_string())]

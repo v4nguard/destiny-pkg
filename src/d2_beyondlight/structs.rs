@@ -2,6 +2,8 @@ use std::{fmt::Debug, io::SeekFrom};
 
 use binrw::BinRead;
 
+use crate::package::PackageLanguage;
+
 #[derive(BinRead, Debug)]
 pub struct PackageHeader {
     #[br(assert(version == 53))]
@@ -17,6 +19,7 @@ pub struct PackageHeader {
     pub build_time: u64,
     #[br(seek_before = SeekFrom::Start(0x30))]
     pub patch_id: u16,
+    pub language: PackageLanguage,
 
     #[br(seek_before = SeekFrom::Start(0x40))]
     pub header_signature_offset: u32,

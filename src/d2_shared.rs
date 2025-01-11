@@ -17,7 +17,7 @@ use rustc_hash::FxHashMap;
 use crate::{
     crypto::PkgGcmState,
     oodle,
-    package::{ReadSeek, UEntryHeader, BLOCK_CACHE_SIZE},
+    package::{PackageLanguage, ReadSeek, UEntryHeader, BLOCK_CACHE_SIZE},
     GameVersion, TagHash,
 };
 
@@ -67,6 +67,7 @@ pub struct PackageCommonD2 {
     pub(crate) version: GameVersion,
     pub(crate) pkg_id: u16,
     pub(crate) patch_id: u16,
+    pub(crate) language: PackageLanguage,
 
     pub(crate) gcm: RwLock<PkgGcmState>,
     pub(crate) _entries: Vec<EntryHeader>,
@@ -94,6 +95,7 @@ impl PackageCommonD2 {
         blocks: Vec<BlockHeader>,
         hashes: Vec<HashTableEntry>,
         path: String,
+        language: PackageLanguage,
     ) -> anyhow::Result<PackageCommonD2> {
         let last_underscore_pos = path.rfind('_').unwrap();
         let path_base = path[..last_underscore_pos].to_owned();
@@ -114,6 +116,7 @@ impl PackageCommonD2 {
             version,
             pkg_id,
             patch_id,
+            language,
             gcm: RwLock::new(PkgGcmState::new(pkg_id, version, group_id)),
             _entries: entries,
             entries_unified: entries_unified.into(),

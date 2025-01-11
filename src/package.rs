@@ -48,6 +48,12 @@ pub enum PackageLanguage {
     Spanish = 5,
     Japanese = 6,
     Portuguese = 7,
+    Russian = 8,
+    Polish = 9,
+    SimplifiedChinese = 10,
+    TraditionalChinese = 11,
+    SpanishLatAm = 12,
+    Korean = 13,
 }
 
 impl PackageLanguage {
@@ -170,7 +176,6 @@ impl GameVersion {
     }
 }
 
-// TODO(cohae): Package language
 pub trait Package: Send + Sync {
     fn endianness(&self) -> binrw::Endian;
 
@@ -187,9 +192,7 @@ pub trait Package: Send + Sync {
 
     fn entry(&self, index: usize) -> Option<UEntryHeader>;
 
-    fn language(&self) -> PackageLanguage {
-        PackageLanguage::None
-    }
+    fn language(&self) -> PackageLanguage;
 
     /// Gets/reads a specific block from the file.
     /// It's recommended that the implementation caches blocks to prevent re-reads

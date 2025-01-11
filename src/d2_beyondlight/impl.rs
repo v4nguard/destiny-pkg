@@ -10,7 +10,7 @@ use binrw::{BinReaderExt, Endian, VecArgs};
 use crate::{
     d2_beyondlight::structs::PackageHeader,
     d2_shared::{HashTableEntry, PackageCommonD2, PackageNamedTagEntry},
-    package::{Package, ReadSeek, UEntryHeader, UHashTableEntry},
+    package::{Package, PackageLanguage, ReadSeek, UEntryHeader, UHashTableEntry},
     GameVersion,
 };
 
@@ -78,6 +78,7 @@ impl PackageD2BeyondLight {
                 blocks,
                 hashes,
                 path.to_string(),
+                header.language,
             )?,
             header,
             named_tags,
@@ -97,6 +98,10 @@ impl Package for PackageD2BeyondLight {
 
     fn patch_id(&self) -> u16 {
         self.common.patch_id
+    }
+
+    fn language(&self) -> PackageLanguage {
+        self.common.language
     }
 
     fn hash64_table(&self) -> Vec<UHashTableEntry> {

@@ -17,7 +17,9 @@ use crate::{
     d1_internal_alpha::structs::{BlockHeader, EntryHeader, EntryHeader2, PackageHeader},
     d1_roi::structs::NamedTagEntryD1,
     oodle,
-    package::{Package, ReadSeek, UEntryHeader, UHashTableEntry, BLOCK_CACHE_SIZE},
+    package::{
+        Package, PackageLanguage, ReadSeek, UEntryHeader, UHashTableEntry, BLOCK_CACHE_SIZE,
+    },
     PackageNamedTagEntry,
 };
 
@@ -164,6 +166,10 @@ impl Package for PackageD1InternalAlpha {
     fn patch_id(&self) -> u16 {
         // Dev packages do not use patch numbers
         0
+    }
+
+    fn language(&self) -> PackageLanguage {
+        self.header.language
     }
 
     fn hash64_table(&self) -> Vec<UHashTableEntry> {
