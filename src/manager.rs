@@ -152,9 +152,15 @@ impl PackageManager {
 
         let first_path = package_paths.values().next().context("No packages found")?;
 
+        let platform = if let Ok(pkg) = version.open(&first_path.path) {
+            pkg.platform()
+        } else {
+            PackagePlatform::from_str(first_path.platform.as_str())?
+        };
+
         let mut s = Self {
             package_dir: packages_dir.as_ref().to_path_buf(),
-            platform: PackagePlatform::from_str(first_path.platform.as_str())?,
+            platform,
             package_paths,
             version,
             package_entry_index: Default::default(),
