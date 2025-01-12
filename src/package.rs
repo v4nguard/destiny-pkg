@@ -194,6 +194,8 @@ pub trait Package: Send + Sync {
 
     fn language(&self) -> PackageLanguage;
 
+    fn platform(&self) -> PackagePlatform;
+
     /// Gets/reads a specific block from the file.
     /// It's recommended that the implementation caches blocks to prevent re-reads
     fn get_block(&self, index: usize) -> anyhow::Result<Arc<Vec<u8>>>;
@@ -320,21 +322,38 @@ pub fn classify_file_prebl(ftype: u8, fsubtype: u8) -> String {
 }
 
 #[derive(
-    serde::Serialize, serde::Deserialize, clap::ValueEnum, PartialEq, Eq, Debug, Clone, Copy,
+    serde::Serialize,
+    serde::Deserialize,
+    clap::ValueEnum,
+    PartialEq,
+    Eq,
+    Debug,
+    Clone,
+    Copy,
+    BinRead,
 )]
+#[br(repr = u16)]
 pub enum PackagePlatform {
+    Tool32,
+    Win32,
+    Win64,
+    Xbox360,
     PS3,
+    Tool64,
+    Win64v1,
     PS4,
-    X360,
     XboxOne,
-    Windows,
+    Stadia,
+    PS5,
+    Scarlett,
 }
 
 impl PackagePlatform {
     pub fn endianness(&self) -> Endian {
         match self {
-            Self::PS3 | Self::X360 => Endian::Big,
-            Self::XboxOne | Self::PS4 | Self::Windows => Endian::Little,
+            Self::PS3 | Self::Xbox360 => Endian::Big,
+            Self::XboxOne | Self::PS4 | Self::Win64 => Endian::Little,
+            _ => Endian::Little,
         }
     }
 }
@@ -346,8 +365,8 @@ impl FromStr for PackagePlatform {
         Ok(match s {
             "ps3" => Self::PS3,
             "ps4" => Self::PS4,
-            "360" => Self::X360,
-            "w64" => Self::Windows,
+            "360" => Self::Xbox360,
+            "w64" => Self::Win64,
             "xboxone" => Self::XboxOne,
             s => return Err(anyhow!("Invalid platform '{s}'")),
         })
@@ -357,11 +376,18 @@ impl FromStr for PackagePlatform {
 impl Display for PackagePlatform {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
+            PackagePlatform::Tool32 => f.write_str("tool32"),
+            PackagePlatform::Win32 => f.write_str("w32"),
+            PackagePlatform::Win64 => f.write_str("w64"),
+            PackagePlatform::Xbox360 => f.write_str("360"),
             PackagePlatform::PS3 => f.write_str("ps3"),
+            PackagePlatform::Tool64 => f.write_str("tool64"),
+            PackagePlatform::Win64v1 => f.write_str("w64"),
             PackagePlatform::PS4 => f.write_str("ps4"),
-            PackagePlatform::X360 => f.write_str("360"),
             PackagePlatform::XboxOne => f.write_str("xboxone"),
-            PackagePlatform::Windows => f.write_str("w64"),
+            PackagePlatform::Stadia => f.write_str("stadia"),
+            PackagePlatform::PS5 => f.write_str("ps5"),
+            PackagePlatform::Scarlett => f.write_str("scarlett"),
         }
     }
 }

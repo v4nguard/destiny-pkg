@@ -18,7 +18,8 @@ use crate::{
     d1_roi::structs::NamedTagEntryD1,
     oodle,
     package::{
-        Package, PackageLanguage, ReadSeek, UEntryHeader, UHashTableEntry, BLOCK_CACHE_SIZE,
+        Package, PackageLanguage, PackagePlatform, ReadSeek, UEntryHeader, UHashTableEntry,
+        BLOCK_CACHE_SIZE,
     },
     PackageNamedTagEntry,
 };
@@ -170,6 +171,10 @@ impl Package for PackageD1InternalAlpha {
 
     fn language(&self) -> PackageLanguage {
         self.header.language
+    }
+
+    fn platform(&self) -> PackagePlatform {
+        self.header.platform
     }
 
     fn hash64_table(&self) -> Vec<UHashTableEntry> {

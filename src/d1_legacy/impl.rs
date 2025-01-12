@@ -19,7 +19,8 @@ use crate::{
     d2_shared::PackageNamedTagEntry,
     oodle,
     package::{
-        Package, PackageLanguage, ReadSeek, UEntryHeader, UHashTableEntry, BLOCK_CACHE_SIZE,
+        Package, PackageLanguage, PackagePlatform, ReadSeek, UEntryHeader, UHashTableEntry,
+        BLOCK_CACHE_SIZE,
     },
 };
 
@@ -184,6 +185,10 @@ impl Package for PackageD1Legacy {
 
     fn language(&self) -> PackageLanguage {
         self.header.language
+    }
+
+    fn platform(&self) -> PackagePlatform {
+        self.header.platform
     }
 
     fn get_block(&self, block_index: usize) -> anyhow::Result<Arc<Vec<u8>>> {

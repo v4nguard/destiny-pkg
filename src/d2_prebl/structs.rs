@@ -2,13 +2,13 @@ use std::{fmt::Debug, io::SeekFrom};
 
 use binrw::BinRead;
 
-use crate::package::PackageLanguage;
+use crate::package::{PackageLanguage, PackagePlatform};
 
 #[derive(BinRead, Debug)]
 pub struct PackageHeader {
     #[br(assert(version == 38))]
     pub version: u16,
-    pub platform: u16,
+    pub platform: PackagePlatform,
 
     pub pkg_id: u16,
     pub _unk6: u16,

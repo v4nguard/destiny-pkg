@@ -2,13 +2,13 @@ use std::{fmt::Debug, io::SeekFrom};
 
 use binrw::BinRead;
 
-use crate::package::PackageLanguage;
+use crate::package::{PackageLanguage, PackagePlatform};
 
 #[derive(BinRead, Debug)]
 pub struct PackageHeader {
     #[br(assert(version == 53))]
     pub version: u16,
-    pub platform: u16,
+    pub platform: PackagePlatform,
 
     #[br(seek_before = SeekFrom::Start(0x8))]
     pub group_id: u64,
