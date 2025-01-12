@@ -35,6 +35,10 @@ pub struct PackageHeader {
     pub block_table_offset: u32,
     pub block_table_hash: [u8; 20],
 
+    pub misc_data_size: u32,
+    pub misc_data_offset: u32,
+    pub misc_data_hash: [u8; 20],
+
     #[br(seek_before = SeekFrom::Start(0x164))]
     pub file_size: u32,
 }

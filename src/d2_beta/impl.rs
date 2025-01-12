@@ -16,6 +16,7 @@ use crate::{
 pub struct PackageD2Beta {
     common: PackageCommonD2,
     pub header: PackageHeader,
+    pub named_tags: Vec<PackageNamedTagEntry>,
 }
 
 unsafe impl Send for PackageD2Beta {}
@@ -47,6 +48,19 @@ impl PackageD2Beta {
             inner: (),
         })?;
 
+        let named_tags: Vec<PackageNamedTagEntry> = if header.misc_data_offset != 0 {
+            reader.seek(SeekFrom::Start((header.misc_data_offset + 0x8) as _))?;
+            let named_tags_size: u64 = reader.read_le()?;
+            let real_named_tags_offset: u64 = reader.read_le()?;
+            reader.seek(SeekFrom::Current(-8 + real_named_tags_offset as i64 + 16))?;
+            reader.read_le_args(VecArgs {
+                count: named_tags_size as _,
+                inner: (),
+            })?
+        } else {
+            vec![]
+        };
+
         Ok(PackageD2Beta {
             common: PackageCommonD2::new(
                 reader,
@@ -61,6 +75,7 @@ impl PackageD2Beta {
                 header.language,
             )?,
             header,
+            named_tags,
         })
     }
 }
@@ -93,7 +108,7 @@ impl Package for PackageD2Beta {
     }
 
     fn named_tags(&self) -> Vec<PackageNamedTagEntry> {
-        vec![]
+        self.named_tags.clone()
     }
 
     fn entries(&self) -> &[UEntryHeader] {
