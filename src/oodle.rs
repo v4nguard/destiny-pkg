@@ -1,3 +1,4 @@
+#![allow(unused)]
 use std::{ffi::c_void, path::Path, ptr::null_mut};
 
 use lazy_static::lazy_static;

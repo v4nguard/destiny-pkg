@@ -252,7 +252,7 @@ impl PackageCommonD2 {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, bincode::Decode, bincode::Encode)]
 pub struct PackageNamedTagEntry {
     pub hash: TagHash,
     pub class_hash: u32,

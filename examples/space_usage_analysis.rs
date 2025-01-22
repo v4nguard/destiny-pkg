@@ -26,7 +26,7 @@ fn main() -> anyhow::Result<()> {
     let mut totals: HashMap<(u8, u8), (usize, usize)> = Default::default();
     let mut references: FxHashMap<u32, (usize, usize)> = Default::default();
 
-    for (_, entries) in package_manager.package_entry_index {
+    for (_, entries) in package_manager.lookup.tag32_entries_by_pkg {
         for entry in entries {
             if entry.file_type == 8 || entry.file_type == 16 {
                 let e = references.entry(entry.reference).or_default();

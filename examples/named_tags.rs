@@ -22,7 +22,7 @@ fn main() -> anyhow::Result<()> {
 
     let package_manager = PackageManager::new(args.packages_path, args.version, args.platform)?;
 
-    for tag in &package_manager.named_tags {
+    for tag in &package_manager.lookup.named_tags {
         let activity_pkg = &package_manager.package_paths[&tag.hash.pkg_id()];
         let activity_pkg = &activity_pkg.filename;
 

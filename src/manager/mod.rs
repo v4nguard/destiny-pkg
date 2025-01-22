@@ -1,21 +1,21 @@
+pub mod lookup_cache;
+pub mod path_cache;
+
 use std::{
-    collections::HashMap,
     fmt::Display,
     fs,
     io::Cursor,
     path::{Path, PathBuf},
     str::FromStr,
     sync::Arc,
-    time::SystemTime,
 };
 
 use anyhow::Context;
 use binrw::{BinRead, BinReaderExt};
-use itertools::Itertools;
 use parking_lot::RwLock;
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
-use tracing::{debug_span, error, info, warn};
+use tracing::{debug_span, info, warn};
 
 use crate::{
     d2_shared::PackageNamedTagEntry,
@@ -25,10 +25,17 @@ use crate::{
     TagHash,
 };
 
-#[derive(Clone)]
+#[derive(Clone, bincode::Decode, bincode::Encode)]
 pub struct HashTableEntryShort {
     pub hash32: TagHash,
     pub reference: TagHash,
+}
+
+#[derive(Default, bincode::Decode, bincode::Encode)]
+pub struct TagLookupIndex {
+    pub tag32_entries_by_pkg: FxHashMap<u16, Vec<UEntryHeader>>,
+    pub tag64_entries: FxHashMap<u64, HashTableEntryShort>,
+    pub named_tags: Vec<PackageNamedTagEntry>,
 }
 
 pub struct PackageManager {
@@ -37,10 +44,8 @@ pub struct PackageManager {
     pub version: GameVersion,
     pub platform: PackagePlatform,
 
-    /// Every entry
-    pub package_entry_index: FxHashMap<u16, Vec<UEntryHeader>>,
-    pub hash64_table: HashMap<u64, HashTableEntryShort>,
-    pub named_tags: Vec<PackageNamedTagEntry>,
+    /// Tag Lookup Index (TLI)
+    pub lookup: TagLookupIndex,
 
     /// Packages that are currently open for reading
     pkgs: RwLock<FxHashMap<u16, Arc<dyn Package>>>,
@@ -72,37 +77,15 @@ impl PackageManager {
             }
         }
 
-        let build_new_cache = if let Some(cache) = Self::read_package_cache(false) {
-            info!("Loading package cache");
-            if let Some(p) = cache.get_paths(version, platform, Some(packages_dir.as_ref()))? {
-                let timestamp = fs::metadata(&packages_dir)
-                    .ok()
-                    .and_then(|m| {
-                        Some(
-                            m.modified()
-                                .ok()?
-                                .duration_since(SystemTime::UNIX_EPOCH)
-                                .ok()?
-                                .as_secs(),
-                        )
-                    })
-                    .unwrap_or(0);
-
-                if p.timestamp < timestamp {
-                    info!("Detected package directory changes, rebuilding cache");
-                    true
-                } else if p.base_path != packages_dir.as_ref() {
-                    warn!("Package directory path changed, rebuilding cache");
-                    true
-                } else {
-                    packages = p.paths.clone();
-                    false
-                }
-            } else {
+        let build_new_cache = match Self::validate_cache(version, platform, packages_dir.as_ref()) {
+            Ok(paths) => {
+                packages = paths;
+                false
+            }
+            Err(e) => {
+                warn!("Caches need to be rebuilt: {e}");
                 true
             }
-        } else {
-            true
         };
 
         if build_new_cache {
@@ -163,149 +146,32 @@ impl PackageManager {
             platform,
             package_paths,
             version,
-            package_entry_index: Default::default(),
-            hash64_table: Default::default(),
+            lookup: Default::default(),
             pkgs: Default::default(),
-            named_tags: Default::default(),
         };
 
         if build_new_cache {
+            s.build_lookup_tables();
             s.write_package_cache().ok();
-        }
-
-        s.build_lookup_tables();
-
-        Ok(s)
-    }
-
-    #[cfg(feature = "ignore_package_cache")]
-    fn read_package_cache(silent: bool) -> Option<PathCache> {
-        if !silent {
-            warn!("Not loading tag cache: ignore_package_cache is enabled")
-        }
-        None
-    }
-
-    #[cfg(feature = "ignore_package_cache")]
-    fn write_package_cache(&self) -> anyhow::Result<()> {
-        Ok(())
-    }
-
-    #[cfg(not(feature = "ignore_package_cache"))]
-    fn read_package_cache(silent: bool) -> Option<PathCache> {
-        let cache: Option<PathCache> = serde_json::from_reader(
-            std::fs::File::open(exe_relative_path("package_cache.json")).ok()?,
-        )
-        .ok();
-
-        if let Some(ref c) = cache {
-            if c.cache_version != PathCache::VERSION {
-                if !silent {
-                    warn!("Package cache is outdated, building a new one");
-                }
-                return None;
+            s.write_lookup_cache().ok();
+        } else {
+            if let Some(lookup_cache) = s.read_lookup_cache() {
+                s.lookup = lookup_cache;
+            } else {
+                info!("No valid index cache found, rebuilding");
+                s.build_lookup_tables();
+                s.write_lookup_cache().ok();
             }
         }
 
-        cache
-    }
-
-    #[cfg(not(feature = "ignore_package_cache"))]
-    fn write_package_cache(&self) -> anyhow::Result<()> {
-        let mut cache = Self::read_package_cache(true).unwrap_or_default();
-
-        let timestamp = fs::metadata(&self.package_dir)
-            .ok()
-            .and_then(|m| {
-                Some(
-                    m.modified()
-                        .ok()?
-                        .duration_since(SystemTime::UNIX_EPOCH)
-                        .ok()?
-                        .as_secs(),
-                )
-            })
-            .unwrap_or(0);
-
-        let entry = cache
-            .versions
-            .entry(self.cache_key())
-            .or_insert_with(|| PathCacheEntry {
-                timestamp,
-                version: self.version,
-                platform: self.platform,
-                base_path: self.package_dir.clone(),
-                paths: Default::default(),
-            });
-
-        entry.timestamp = timestamp;
-        entry.base_path = self.package_dir.clone();
-        entry.paths.clear();
-
-        for (id, path) in &self.package_paths {
-            entry.paths.insert(*id, path.path.clone());
-        }
-
-        Ok(std::fs::write(
-            exe_relative_path("package_cache.json"),
-            serde_json::to_string_pretty(&cache)?,
-        )?)
-    }
-
-    /// Generates a key unique to the game version + platform combination
-    /// eg. GameVersion::DestinyTheTakenKing and PackagePlatform::PS4 generates cache key "d1_ttk_ps4"
-    pub fn cache_key(&self) -> String {
-        format!("{}_{}", self.version.id(), self.platform)
-    }
-
-    pub fn build_lookup_tables(&mut self) {
-        let tables: Vec<_> = self
-            .package_paths
-            .par_iter()
-            .filter_map(|(_, p)| {
-                let _span = debug_span!("Read package tables", package = p.path).entered();
-                let pkg = match self.version.open(&p.path) {
-                    Ok(package) => package,
-                    Err(e) => {
-                        error!("Failed to open package '{}': {e}", p.filename);
-                        return None;
-                    }
-                };
-                let entries = (pkg.pkg_id(), pkg.entries().to_vec());
-
-                let hashes = pkg
-                    .hash64_table()
-                    .iter()
-                    .map(|h| {
-                        (
-                            h.hash64,
-                            HashTableEntryShort {
-                                hash32: h.hash32,
-                                reference: h.reference,
-                            },
-                        )
-                    })
-                    .collect::<Vec<(u64, HashTableEntryShort)>>();
-
-                let named_tags = pkg.named_tags();
-
-                Some((entries, hashes, named_tags))
-            })
-            .collect();
-
-        let (entries, hashes, named_tags): (_, Vec<_>, Vec<_>) = tables.into_iter().multiunzip();
-
-        self.package_entry_index = entries;
-        self.hash64_table = hashes.into_iter().flatten().collect();
-        self.named_tags = named_tags.into_iter().flatten().collect();
-
-        info!("Loaded {} packages", self.package_entry_index.len());
+        Ok(s)
     }
 }
 
 impl PackageManager {
     pub fn get_all_by_reference(&self, reference: u32) -> Vec<(TagHash, UEntryHeader)> {
-        self.package_entry_index
+        self.lookup
+            .tag32_entries_by_pkg
             .par_iter()
             .map(|(p, e)| {
                 e.iter()
@@ -319,7 +185,8 @@ impl PackageManager {
     }
 
     pub fn get_all_by_type(&self, etype: u8, esubtype: Option<u8>) -> Vec<(TagHash, UEntryHeader)> {
-        self.package_entry_index
+        self.lookup
+            .tag32_entries_by_pkg
             .par_iter()
             .map(|(p, e)| {
                 e.iter()
@@ -367,7 +234,8 @@ impl PackageManager {
     pub fn read_tag64(&self, hash: impl Into<TagHash64>) -> anyhow::Result<Vec<u8>> {
         let hash = hash.into();
         let tag = self
-            .hash64_table
+            .lookup
+            .tag64_entries
             .get(&hash.0)
             .context("Hash not found")?
             .hash32;
@@ -377,21 +245,24 @@ impl PackageManager {
     pub fn get_entry(&self, tag: impl Into<TagHash>) -> Option<UEntryHeader> {
         let tag: TagHash = tag.into();
 
-        self.package_entry_index
+        self.lookup
+            .tag32_entries_by_pkg
             .get(&tag.pkg_id())?
             .get(tag.entry_index() as usize)
             .cloned()
     }
 
     pub fn get_named_tag(&self, name: &str, class_hash: u32) -> Option<TagHash> {
-        self.named_tags
+        self.lookup
+            .named_tags
             .iter()
             .find(|n| n.name == name && n.class_hash == class_hash)
             .map(|n| n.hash)
     }
 
     pub fn get_named_tags_by_class(&self, class_hash: u32) -> Vec<(String, TagHash)> {
-        self.named_tags
+        self.lookup
+            .named_tags
             .iter()
             .filter(|n| n.class_hash == class_hash)
             .map(|n| (n.name.clone(), n.hash))
@@ -401,7 +272,8 @@ impl PackageManager {
     /// Find the name of a tag by its hash, if it has one.
     pub fn get_tag_name(&self, tag: impl Into<TagHash>) -> Option<String> {
         let tag: TagHash = tag.into();
-        self.named_tags
+        self.lookup
+            .named_tags
             .iter()
             .find(|n| n.hash == tag)
             .map(|n| n.name.clone())
@@ -427,87 +299,6 @@ impl PackageManager {
         let mut cursor = Cursor::new(&data);
         Ok(cursor.read_type(self.version.endian())?)
     }
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
-pub(crate) struct PathCache {
-    cache_version: usize,
-    versions: HashMap<String, PathCacheEntry>,
-}
-
-impl Default for PathCache {
-    fn default() -> Self {
-        Self {
-            cache_version: Self::VERSION,
-            versions: HashMap::new(),
-        }
-    }
-}
-
-impl PathCache {
-    pub const VERSION: usize = 4;
-
-    /// Gets path cache entry by version and platform
-    /// If `platform` is None, the first
-    /// This function will return an error if there are multiple entries for the same version when `platform` is None
-    pub fn get_paths(
-        &self,
-        version: GameVersion,
-        platform: Option<PackagePlatform>,
-        base_path: Option<&Path>,
-    ) -> anyhow::Result<Option<&PathCacheEntry>> {
-        if let Some(platform) = platform {
-            return Ok(self.versions.get(&format!("{}_{}", version.id(), platform)));
-        }
-
-        let mut matches = self
-            .versions
-            .iter()
-            .filter(|(k, v)| {
-                v.version == version && platform.map(|p| v.platform == p).unwrap_or(true)
-            })
-            .map(|(_, v)| v)
-            .collect_vec();
-
-        if matches.len() > 1 {
-            if let Some(base_path) = base_path {
-                matches.retain(|c| c.base_path == base_path)
-            }
-        }
-
-        if matches.len() > 1 {
-            anyhow::bail!(
-                "There is more than one cache entry for version '{}', but no platform was given",
-                version.name()
-            );
-        }
-
-        Ok(matches.first().map(|v| *v))
-    }
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
-pub(crate) struct PathCacheEntry {
-    /// Timestamp of the packages directory
-    timestamp: u64,
-    version: GameVersion,
-    platform: PackagePlatform,
-    base_path: PathBuf,
-    paths: FxHashMap<u16, String>,
-}
-
-#[cfg(not(feature = "ignore_package_cache"))]
-fn exe_directory() -> PathBuf {
-    std::env::current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .to_path_buf()
-}
-
-#[cfg(not(feature = "ignore_package_cache"))]
-fn exe_relative_path(path: &str) -> PathBuf {
-    exe_directory().join(path)
 }
 
 #[derive(Debug, Clone)]
