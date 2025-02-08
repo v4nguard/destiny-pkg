@@ -36,9 +36,11 @@ ignore_package_cache = []
 
 [dev-dependencies]
 env_logger = "0.10.0"
+pbr = "1.1.1"
+rayon = "1.7.0"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
-tracing-tracy = "0.10.4"
-tracy-client = "0.16.4"
+tracing-tracy = "0.11.4"
+tracy-client = "0.18.0"
 
 [package.metadata.appimage]
 auto_link = true
