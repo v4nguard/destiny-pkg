@@ -3,6 +3,7 @@ extern crate core;
 mod crypto;
 mod d2_shared;
 mod oodle;
+pub use crypto::register_pkg_key;
 
 mod d1_internal_alpha;
 mod d1_legacy;

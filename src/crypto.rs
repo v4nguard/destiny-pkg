@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
-use aes_gcm::{aead::AeadMutInPlace, Aes128Gcm, KeyInit};
-use itertools::Itertools;
+use aes_gcm::{AeadInPlace, Aes128Gcm, KeyInit};
 use lazy_static::lazy_static;
+use parking_lot::RwLock;
 use tracing::{error, info};
 
 use crate::GameVersion;
 
 lazy_static! {
-    static ref CIPHERS_EXTRA: HashMap<u64, (Aes128Gcm, [u8; 12])> = {
+    static ref CIPHERS_EXTRA: RwLock<HashMap<u64, (Aes128Gcm, [u8; 12])>> = {
         if let Ok(keyfile) = std::fs::read_to_string("keys.txt") {
             let k: HashMap<u64, (Aes128Gcm, [u8; 12])> = parse_keys(&keyfile)
                 .into_iter()
@@ -19,11 +19,17 @@ lazy_static! {
                 info!("Loaded {} external keys", k.len());
             }
 
-            k
+            RwLock::new(k)
         } else {
-            HashMap::new()
+            RwLock::new(HashMap::new())
         }
     };
+}
+
+pub fn register_pkg_key(group: u64, key: [u8; 16], iv: [u8; 12]) {
+    CIPHERS_EXTRA
+        .write()
+        .insert(group, (Aes128Gcm::new(&key.into()), iv));
 }
 
 pub struct PkgGcmState {
@@ -54,7 +60,7 @@ impl PkgGcmState {
             nonce: Self::AES_NONCE_BASE,
             cipher_0: Aes128Gcm::new(&Self::AES_KEY_0.into()),
             cipher_1: Aes128Gcm::new(&Self::AES_KEY_1.into()),
-            cipher_extra: CIPHERS_EXTRA.get(&group).cloned(),
+            cipher_extra: CIPHERS_EXTRA.read().get(&group).cloned(),
             group,
         };
 
@@ -73,13 +79,13 @@ impl PkgGcmState {
     }
 
     pub fn decrypt_block_in_place(
-        &mut self,
+        &self,
         flags: u16,
         tag: &[u8],
         data: &mut [u8],
     ) -> anyhow::Result<()> {
         if (flags & 0x8) != 0 {
-            if let Some((cipher, iv)) = self.cipher_extra.as_mut() {
+            if let Some((cipher, iv)) = &self.cipher_extra {
                 match cipher.decrypt_in_place_detached(iv.as_slice().into(), &[], data, tag.into())
                 {
                     Ok(_) => {
@@ -96,9 +102,9 @@ impl PkgGcmState {
         }
 
         let (cipher, nonce) = if (flags & 0x4) != 0 {
-            (&mut self.cipher_1, &self.nonce)
+            (&self.cipher_1, &self.nonce)
         } else {
-            (&mut self.cipher_0, &self.nonce)
+            (&self.cipher_0, &self.nonce)
         };
 
         match cipher.decrypt_in_place_detached(nonce.into(), &[], data, tag.into()) {
