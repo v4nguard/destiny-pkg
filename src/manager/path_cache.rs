@@ -7,7 +7,7 @@ use std::{
 
 use itertools::Itertools;
 use rustc_hash::FxHashMap;
-use tracing::{debug_span, error, info, warn};
+use tracing::{info, warn};
 
 use super::PackageManager;
 use crate::{package::PackagePlatform, GameVersion};

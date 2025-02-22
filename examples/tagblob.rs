@@ -1,11 +1,11 @@
 use std::{
     fs::File,
     io::{BufWriter, Write},
-    sync::{atomic::AtomicUsize, Arc},
+    sync::{Arc, atomic::AtomicUsize},
 };
 
 use clap::Parser;
-use destiny_pkg::{package::PackagePlatform, GameVersion, PackageManager, TagHash};
+use destiny_pkg::{GameVersion, PackageManager, TagHash, package::PackagePlatform};
 use itertools::Itertools;
 use parking_lot::Mutex;
 use pbr::ProgressBar;
@@ -40,6 +40,7 @@ fn main() -> anyhow::Result<()> {
     let mut entries = vec![];
     entries.extend(package_manager.get_all_by_type(8, None)); // Tag
     entries.extend(package_manager.get_all_by_type(16, None)); // TagGlobal
+    entries.extend(package_manager.get_all_by_type(26, Some(6))); // WwiseBank
 
     let blob_size = entries.iter().fold(0usize, |size, (_, e)| {
         size + ((e.file_size + 0xf) & !0xf) as usize

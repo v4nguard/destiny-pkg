@@ -1,4 +1,5 @@
 /target
+/target_ra
 /Cargo.lock
 /files/
 /packages/
@@ -7,3 +8,6 @@
 /libs
 /out
 /.idea
+
+tagblob.bin
+tagblob.txt

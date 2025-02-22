@@ -8,20 +8,18 @@ use crate::manager::HashTableEntryShort;
 impl PackageManager {
     // const LOOKUP_CACHE_VERSION: u32 = 1;
 
-    #[cfg(feature = "ignore_package_cache")]
-    pub(super) fn read_lookup_cache(&self) -> Option<PathCache> {
-        if !silent {
-            info!("Not loading tag cache: ignore_package_cache is enabled")
-        }
+    #[cfg(feature = "ignore_lookup_cache")]
+    pub(super) fn read_lookup_cache(&self) -> Option<TagLookupIndex> {
+        info!("Not loading tag cache: ignore_lookup_cache feature flag is set");
         None
     }
 
-    #[cfg(feature = "ignore_package_cache")]
+    #[cfg(feature = "ignore_lookup_cache")]
     pub(super) fn write_lookup_cache(&self) -> anyhow::Result<()> {
         Ok(())
     }
 
-    #[cfg(not(feature = "ignore_package_cache"))]
+    #[cfg(not(feature = "ignore_lookup_cache"))]
     pub(super) fn read_lookup_cache(&self) -> Option<TagLookupIndex> {
         use std::io::Read;
 
@@ -46,7 +44,7 @@ impl PackageManager {
         cache
     }
 
-    #[cfg(not(feature = "ignore_package_cache"))]
+    #[cfg(not(feature = "ignore_lookup_cache"))]
     pub(super) fn write_lookup_cache(&self) -> anyhow::Result<()> {
         use super::path_cache::exe_relative_path;
 

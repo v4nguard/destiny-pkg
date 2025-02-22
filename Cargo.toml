@@ -32,7 +32,9 @@ serde_json = "1.0.108"
 tracing = { version = "0.1.37", features = ["log"] }
 
 [features]
+ignore_caches = ["ignore_package_cache", "ignore_lookup_cache"]
 ignore_package_cache = []
+ignore_lookup_cache = []
 
 [dev-dependencies]
 env_logger = "0.10.0"
