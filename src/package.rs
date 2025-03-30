@@ -70,6 +70,10 @@ pub enum GameVersion {
     #[value(name = "d1_devalpha")]
     DestinyInternalAlpha = 1_0500,
 
+    /// PS4 First Look Alpha
+    #[value(name = "d1_flalpha")]
+    DestinyFirstLookAlpha = 1_0800,
+
     /// PS3/X360 version of Destiny (The Taken King)
     #[value(name = "d1_ttk")]
     DestinyTheTakenKing = 1_2000,
@@ -109,6 +113,7 @@ impl GameVersion {
     pub fn open(&self, path: &str) -> anyhow::Result<Arc<dyn Package>> {
         Ok(match self {
             GameVersion::DestinyInternalAlpha => Arc::new(PackageD1InternalAlpha::open(path)?),
+            GameVersion::DestinyFirstLookAlpha => Arc::new(PackageD1RiseOfIron::open(path)?),
             GameVersion::DestinyTheTakenKing => Arc::new(PackageD1Legacy::open(path)?),
             GameVersion::DestinyRiseOfIron => Arc::new(PackageD1RiseOfIron::open(path)?),
             GameVersion::Destiny2Beta => Arc::new(PackageD2Beta::open(path)?),
@@ -139,6 +144,7 @@ impl GameVersion {
             GameVersion::DestinyInternalAlpha
                 | GameVersion::DestinyTheTakenKing
                 | GameVersion::DestinyRiseOfIron
+                | GameVersion::DestinyFirstLookAlpha
         )
     }
 
@@ -163,6 +169,7 @@ impl GameVersion {
     pub fn name(&self) -> &'static str {
         match self {
             GameVersion::DestinyInternalAlpha => "Destiny X360 Internal Alpha",
+            GameVersion::DestinyFirstLookAlpha => "Destiny First Look Alpha",
             GameVersion::DestinyTheTakenKing => "Destiny: The Taken King",
             GameVersion::DestinyRiseOfIron => "Destiny: Rise of Iron",
             GameVersion::Destiny2Beta => "Destiny 2: Beta",
