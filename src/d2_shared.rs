@@ -193,6 +193,7 @@ impl PackageCommonD2 {
             let _decompressed_size = match self.version {
                 // Destiny 1
                 GameVersion::DestinyInternalAlpha
+                | GameVersion::DestinyFirstLookAlpha
                 | GameVersion::DestinyTheTakenKing
                 | GameVersion::DestinyRiseOfIron => oodle::decompress_3,
 

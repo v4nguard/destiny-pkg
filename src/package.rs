@@ -95,18 +95,18 @@ pub enum GameVersion {
 
     /// Destiny 2 (Beyond Light/Season of the Lost)
     #[value(name = "d2_bl")]
-    Destiny2BeyondLight,
+    Destiny2BeyondLight = 2_3000,
 
     /// Destiny 2 (Witch Queen/Season of the Seraph)
     #[value(name = "d2_wq")]
-    Destiny2WitchQueen = 4000,
+    Destiny2WitchQueen = 2_4000,
 
     /// Destiny 2 (Lightfall)
     #[value(name = "d2_lf")]
-    Destiny2Lightfall = 7000,
+    Destiny2Lightfall = 2_7000,
 
     #[value(name = "d2_tfs")]
-    Destiny2TheFinalShape = 8000,
+    Destiny2TheFinalShape = 2_8000,
 }
 
 impl GameVersion {
@@ -139,24 +139,15 @@ impl GameVersion {
     }
 
     pub fn is_d1(&self) -> bool {
-        matches!(
-            self,
-            GameVersion::DestinyInternalAlpha
-                | GameVersion::DestinyTheTakenKing
-                | GameVersion::DestinyRiseOfIron
-                | GameVersion::DestinyFirstLookAlpha
-        )
+        *self <= GameVersion::DestinyRiseOfIron
     }
 
     pub fn is_d2(&self) -> bool {
-        matches!(
-            self,
-            GameVersion::Destiny2Beta
-                | GameVersion::Destiny2Shadowkeep
-                | GameVersion::Destiny2BeyondLight
-                | GameVersion::Destiny2WitchQueen
-                | GameVersion::Destiny2Lightfall
-        )
+        *self >= GameVersion::Destiny2Beta
+    }
+
+    pub fn is_prebl(&self) -> bool {
+        GameVersion::Destiny2Beta <= *self && *self <= GameVersion::Destiny2Shadowkeep
     }
 
     pub fn id(&self) -> String {
