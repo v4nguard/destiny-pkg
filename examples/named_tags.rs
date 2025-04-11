@@ -27,10 +27,8 @@ fn main() -> anyhow::Result<()> {
         let activity_pkg = &activity_pkg.filename;
 
         println!(
-            "{activity_pkg}: {} - {} (D2Class_{:08x})",
-            tag.name,
-            tag.hash,
-            tag.class_hash.to_be(),
+            "{activity_pkg}: {} - {} (SUnk{:08X})",
+            tag.name, tag.hash, tag.class_hash,
         );
     }
 

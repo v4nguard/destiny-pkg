@@ -1,6 +1,7 @@
 use std::{
     fmt::{Debug, Display, Formatter},
     hash::Hash,
+    str::FromStr,
 };
 
 use binrw::{BinRead, BinWrite};
@@ -90,18 +91,34 @@ impl Debug for TagHash {
         } else if !self.is_valid() {
             f.write_fmt(format_args!("TagHash(INVALID(0x{:x}))", self.0))
         } else {
-            f.write_fmt(format_args!(
-                "TagHash(pkg={:04x}, entry={})",
-                self.pkg_id(),
-                self.entry_index()
-            ))
+            f.debug_struct("TagHash")
+                .field("pkg_id", &self.pkg_id())
+                .field("entry_index", &self.entry_index())
+                .finish()
+        }
+    }
+}
+
+impl FromStr for TagHash {
+    type Err = std::num::ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let hash = u32::from_str_radix(s, 16)?;
+        if cfg!(feature = "flip_tag_format") {
+            Ok(TagHash(hash.swap_bytes()))
+        } else {
+            Ok(TagHash(hash))
         }
     }
 }
 
 impl Display for TagHash {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{:08X}", self.0.to_be()))
+        if cfg!(feature = "flip_tag_format") {
+            f.write_fmt(format_args!("{:08X}", self.0.swap_bytes()))
+        } else {
+            f.write_fmt(format_args!("{:08X}", self.0))
+        }
     }
 }
 
@@ -158,7 +175,11 @@ impl Debug for TagHash64 {
 
 impl Display for TagHash64 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{:016X}", self.0.to_be()))
+        if cfg!(feature = "flip_tag_format") {
+            f.write_fmt(format_args!("{:016X}", self.0.swap_bytes()))
+        } else {
+            f.write_fmt(format_args!("{:016X}", self.0))
+        }
     }
 }
 

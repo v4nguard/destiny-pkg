@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use clap::Parser;
-use destiny_pkg::{package::PackagePlatform, GameVersion, PackageManager};
+use destiny_pkg::{package::PackagePlatform, GameVersion, PackageManager, TagHash};
 use rustc_hash::FxHashMap;
 
 #[derive(Parser, Debug)]
@@ -26,6 +26,8 @@ fn main() -> anyhow::Result<()> {
     let mut totals: HashMap<(u8, u8), (usize, usize)> = Default::default();
     let mut references: FxHashMap<u32, (usize, usize)> = Default::default();
 
+    let mut biggest_of_type: HashMap<(u8, u8), (usize, TagHash)> = Default::default();
+
     for (_, entries) in package_manager.lookup.tag32_entries_by_pkg {
         for entry in entries {
             if entry.file_type == 8 || entry.file_type == 16 {
@@ -34,12 +36,32 @@ fn main() -> anyhow::Result<()> {
                 e.1 += entry.file_size as usize;
             }
 
+            match biggest_of_type
+                .entry((entry.file_type, entry.file_subtype))
+                .or_default()
+            {
+                (size, hash) if *size < entry.file_size => {
+                    *size = entry.file_size as usize;
+                    *hash = entry.hash;
+                }
+                _ => {}
+            }
+
             let e = totals
                 .entry((entry.file_type, entry.file_subtype))
                 .or_default();
             e.0 += entry.file_size as usize;
             e.1 += 1;
         }
+    }
+
+    for ((ftype, fsubtype), (size, tag)) in &biggest_of_type {
+        let (size, hash) = *size;
+        println!(
+            "{ftype}.{fsubtype} - {tag} ({})",
+            format_file_size(*size),
+        );
+        println!("  Biggest: {:08X}", hash.to_be());
     }
 
     let mut resorted_totals: Vec<((u8, u8), (usize, usize))> = totals.into_iter().collect();
