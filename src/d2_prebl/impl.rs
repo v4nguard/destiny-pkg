@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{BufReader, SeekFrom},
+    io::{BufReader, Seek, SeekFrom},
     sync::Arc,
 };
 
@@ -25,7 +25,7 @@ unsafe impl Sync for PackageD2PreBL {}
 impl PackageD2PreBL {
     pub fn open(path: &str) -> anyhow::Result<PackageD2PreBL> {
         let _span = tracing::trace_span!("PackageD2PreBL::open", path);
-        let reader = BufReader::new(File::open(path)?);
+        let reader = File::open(path)?;
 
         Self::from_reader(path, reader)
     }
@@ -35,7 +35,7 @@ impl PackageD2PreBL {
         reader: R,
     ) -> anyhow::Result<PackageD2PreBL> {
         let _span = tracing::trace_span!("PackageD2PreBL::from_reader", path);
-        let mut reader = reader;
+        let mut reader = BufReader::new(reader);
         let header: PackageHeader = reader.read_le()?;
 
         reader.seek(SeekFrom::Start(header.entry_table_offset as u64 - 16))?;
@@ -83,7 +83,7 @@ impl PackageD2PreBL {
 
         Ok(PackageD2PreBL {
             common: PackageCommonD2::new(
-                reader,
+                reader.into_inner(),
                 GameVersion::Destiny2Shadowkeep,
                 header.pkg_id,
                 header.patch_id,

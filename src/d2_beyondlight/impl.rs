@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{BufReader, SeekFrom},
+    io::{BufReader, Seek, SeekFrom},
     sync::Arc,
 };
 
@@ -25,8 +25,7 @@ unsafe impl Sync for PackageD2BeyondLight {}
 
 impl PackageD2BeyondLight {
     pub fn open(path: &str, version: GameVersion) -> anyhow::Result<PackageD2BeyondLight> {
-        let reader =
-            BufReader::new(File::open(path).with_context(|| format!("Cannot find file '{path}'"))?);
+        let reader = File::open(path).with_context(|| format!("Cannot find file '{path}'"))?;
 
         Self::from_reader(path, reader, version)
     }
@@ -36,7 +35,7 @@ impl PackageD2BeyondLight {
         reader: R,
         version: GameVersion,
     ) -> anyhow::Result<PackageD2BeyondLight> {
-        let mut reader = reader;
+        let mut reader = BufReader::new(reader);
         let header: PackageHeader = reader.read_le()?;
 
         reader.seek(SeekFrom::Start(header.entry_table_offset as _))?;
@@ -69,7 +68,7 @@ impl PackageD2BeyondLight {
 
         Ok(PackageD2BeyondLight {
             common: PackageCommonD2::new(
-                reader,
+                reader.into_inner(),
                 version,
                 header.pkg_id,
                 header.patch_id,

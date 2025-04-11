@@ -45,7 +45,7 @@ unsafe impl Sync for PackageD1Legacy {}
 
 impl PackageD1Legacy {
     pub fn open(path: &str) -> anyhow::Result<PackageD1Legacy> {
-        let reader = BufReader::new(File::open(path)?);
+        let reader = File::open(path)?;
 
         Self::from_reader(path, reader)
     }
@@ -54,7 +54,7 @@ impl PackageD1Legacy {
         path: &str,
         reader: R,
     ) -> anyhow::Result<PackageD1Legacy> {
-        let mut reader = reader;
+        let mut reader = BufReader::new(reader);
         let header: PackageHeader = reader.read_be()?;
 
         reader.seek(SeekFrom::Start(header.entry_table_offset as u64))?;
@@ -95,7 +95,7 @@ impl PackageD1Legacy {
 
         Ok(PackageD1Legacy {
             path_base,
-            reader: RwLock::new(Box::new(reader)),
+            reader: RwLock::new(Box::new(reader.into_inner())),
             header,
             _entries: entries,
             entries_unified,
