@@ -28,8 +28,8 @@ impl PackageManager {
 
     #[cfg(not(feature = "ignore_package_cache"))]
     pub(super) fn read_package_cache(silent: bool) -> Option<PathCache> {
-        let cache: Option<PathCache> = serde_json::from_reader(
-            std::fs::File::open(exe_relative_path("package_cache.json")).ok()?,
+        let cache: Option<PathCache> = serde_json::from_str(
+            &std::fs::read_to_string(exe_relative_path("package_cache.json")).ok()?,
         )
         .ok();
 
