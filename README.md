@@ -16,7 +16,7 @@ directory where you run destiny-pkg from. Check below for the version of oo2core
 
 | Version                         | Platform          | Works? | Oodle DLL |
 |---------------------------------|-------------------|--------|-----------|
-| Destiny Internal Alpha          | X360              | ✅      | oo2core_3 |               
+| Destiny Internal Alpha          | X360              | ✅      | oo2core_3 |
 | Destiny Legacy (The Taken King) | PS3/X360/PS4/XONE | ✅      | oo2core_3 |
 | Destiny (Rise of Iron)          | PS4/XONE          | ✅      | oo2core_3 |
 | Destiny 2 (Beta)                | Any               | ✅      | oo2core_3 |
