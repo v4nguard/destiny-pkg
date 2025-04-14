@@ -313,34 +313,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "destiny-pkg"
-version = "0.17.3"
-dependencies = [
- "aes",
- "aes-gcm",
- "anyhow",
- "bincode",
- "binrw",
- "clap",
- "clap-num",
- "env_logger",
- "hex",
- "itertools",
- "lazy_static",
- "libloading",
- "parking_lot",
- "pbr",
- "rayon",
- "rustc-hash",
- "serde",
- "serde_json",
- "tracing",
- "tracing-subscriber",
- "tracing-tracy",
- "tracy-client",
-]
-
-[[package]]
 name = "either"
 version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -863,6 +835,34 @@ checksum = "8b9ef9bad013ada3808854ceac7b46812a6465ba368859a37e2100283d2d719c"
 dependencies = [
  "cfg-if",
  "once_cell",
+]
+
+[[package]]
+name = "tiger-pkg"
+version = "0.18.0"
+dependencies = [
+ "aes",
+ "aes-gcm",
+ "anyhow",
+ "bincode",
+ "binrw",
+ "clap",
+ "clap-num",
+ "env_logger",
+ "hex",
+ "itertools",
+ "lazy_static",
+ "libloading",
+ "parking_lot",
+ "pbr",
+ "rayon",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "tracing",
+ "tracing-subscriber",
+ "tracing-tracy",
+ "tracy-client",
 ]
 
 [[package]]
