@@ -1,3 +1,5 @@
+# ⚠ WARNING: This library has been superseded by [tiger-pkg](https://github.com/v4nguard/tiger-pkg)
+
 # Destiny PKG Library
 
 [![Latest version](https://img.shields.io/crates/v/destiny-pkg.svg)](https://crates.io/crates/destiny-pkg)
@@ -16,7 +18,7 @@ directory where you run destinypkgtool from. Check below for the version of oo2c
 
 | Version                         | Platform          | Works? | Oodle DLL |
 |---------------------------------|-------------------|--------|-----------|
-| Destiny Internal Alpha          | X360              | ✅      | oo2core_3 |               
+| Destiny Internal Alpha          | X360              | ✅      | oo2core_3 |
 | Destiny Legacy (The Taken King) | PS3/X360/PS4/XONE | ✅      | oo2core_3 |
 | Destiny (Rise of Iron)          | PS4/XONE          | ✅      | oo2core_3 |
 | Destiny 2 (Beta)                | Any               | ✅      | oo2core_3 |

@@ -1,11 +1,11 @@
 [package]
 name = "destiny-pkg"
-version = "0.17.2"
+version = "0.17.3"
 edition = "2021"
 authors = ["cohaereo <cohae@cohae.dev>", "nblock <nblock@nblock.dev>"]
 description = "Destiny 1/2 Tiger package library and tools (unpacker, verification)"
-homepage = "https://github.com/v4nguard/destiny-pkg"
-repository = "https://github.com/v4nguard/destiny-pkg"
+homepage = "https://github.com/v4nguard/tiger-pkg"
+repository = "https://github.com/v4nguard/tiger-pkg"
 license = "MIT"
 readme = "README.md"
 categories = ["data-structures", "compression", "encoding"]
