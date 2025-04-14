@@ -18,7 +18,7 @@ use crate::{
     crypto::PkgGcmState,
     oodle,
     package::{PackageLanguage, ReadSeek, UEntryHeader, BLOCK_CACHE_SIZE},
-    GameVersion, TagHash,
+    DestinyVersion, GameVersion, TagHash,
 };
 
 #[derive(BinRead, Debug, Clone)]
@@ -64,7 +64,7 @@ pub struct HashTableEntry {
 pub const BLOCK_SIZE: usize = 0x40000;
 
 pub struct PackageCommonD2 {
-    pub(crate) version: GameVersion,
+    pub(crate) version: DestinyVersion,
     pub(crate) pkg_id: u16,
     pub(crate) patch_id: u16,
     pub(crate) language: PackageLanguage,
@@ -87,7 +87,7 @@ pub struct PackageCommonD2 {
 impl PackageCommonD2 {
     pub fn new<R: ReadSeek + 'static>(
         reader: R,
-        version: GameVersion,
+        version: DestinyVersion,
         pkg_id: u16,
         patch_id: u16,
         group_id: u64,
@@ -117,7 +117,11 @@ impl PackageCommonD2 {
             pkg_id,
             patch_id,
             language,
-            gcm: RwLock::new(PkgGcmState::new(pkg_id, version, group_id)),
+            gcm: RwLock::new(PkgGcmState::new(
+                pkg_id,
+                GameVersion::Destiny(version),
+                group_id,
+            )),
             _entries: entries,
             entries_unified: entries_unified.into(),
             blocks,
@@ -192,21 +196,21 @@ impl PackageCommonD2 {
             let mut buffer = vec![0u8; BLOCK_SIZE];
             let _decompressed_size = match self.version {
                 // Destiny 1
-                GameVersion::DestinyInternalAlpha
-                | GameVersion::DestinyFirstLookAlpha
-                | GameVersion::DestinyTheTakenKing
-                | GameVersion::DestinyRiseOfIron => oodle::decompress_3,
+                DestinyVersion::DestinyInternalAlpha
+                | DestinyVersion::DestinyFirstLookAlpha
+                | DestinyVersion::DestinyTheTakenKing
+                | DestinyVersion::DestinyRiseOfIron => oodle::decompress_3,
 
                 // Destiny 2 (Red War - Beyond Light)
-                GameVersion::Destiny2Beta
-                | GameVersion::Destiny2Forsaken
-                | GameVersion::Destiny2Shadowkeep => oodle::decompress_3,
+                DestinyVersion::Destiny2Beta
+                | DestinyVersion::Destiny2Forsaken
+                | DestinyVersion::Destiny2Shadowkeep => oodle::decompress_3,
 
                 // Destiny 2 (Beyond Light - Latest)
-                GameVersion::Destiny2BeyondLight
-                | GameVersion::Destiny2WitchQueen
-                | GameVersion::Destiny2Lightfall
-                | GameVersion::Destiny2TheFinalShape => oodle::decompress_9,
+                DestinyVersion::Destiny2BeyondLight
+                | DestinyVersion::Destiny2WitchQueen
+                | DestinyVersion::Destiny2Lightfall
+                | DestinyVersion::Destiny2TheFinalShape => oodle::decompress_9,
             }(&block_data, &mut buffer)?;
 
             buffer

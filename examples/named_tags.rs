@@ -1,5 +1,5 @@
 use clap::Parser;
-use destiny_pkg::{package::PackagePlatform, GameVersion, PackageManager};
+use tiger_pkg::{package::PackagePlatform, GameVersion, PackageManager};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None, disable_version_flag(true))]

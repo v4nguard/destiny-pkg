@@ -2,7 +2,7 @@ use std::{fs::File, io::Write, path::PathBuf};
 
 use clap::Parser;
 use clap_num::maybe_hex;
-use destiny_pkg::{package::classify_file_prebl, GameVersion, TagHash};
+use tiger_pkg::{package::classify_file_prebl, DestinyVersion, GameVersion, TagHash, Version};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None, disable_version_flag(true))]
@@ -82,7 +82,7 @@ fn main() -> anyhow::Result<()> {
         }
         let ref_hash = TagHash(e.reference);
 
-        let ext = if args.version == GameVersion::Destiny2Shadowkeep {
+        let ext = if args.version == GameVersion::Destiny(DestinyVersion::Destiny2Shadowkeep) {
             classify_file_prebl(e.file_type, e.file_subtype)
         } else {
             "bin".to_string()
@@ -133,7 +133,7 @@ pub struct EntryFilter {
 }
 
 impl EntryFilter {
-    pub fn matches(&self, entry: &destiny_pkg::package::UEntryHeader) -> bool {
+    pub fn matches(&self, entry: &tiger_pkg::package::UEntryHeader) -> bool {
         if let Some(entry_type) = self.entry_type {
             if entry.file_type != entry_type {
                 return false;

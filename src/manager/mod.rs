@@ -20,9 +20,9 @@ use tracing::{debug_span, info, warn};
 use crate::{
     d2_shared::PackageNamedTagEntry,
     oodle,
-    package::{GameVersion, Package, PackagePlatform, UEntryHeader},
+    package::{Package, PackagePlatform, UEntryHeader},
     tag::TagHash64,
-    TagHash,
+    GameVersion, TagHash, Version,
 };
 
 #[derive(Clone, bincode::Decode, bincode::Encode)]

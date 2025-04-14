@@ -10,7 +10,7 @@ use crate::{
     d2_prebl::structs::PackageHeader,
     d2_shared::{HashTableEntry, PackageCommonD2, PackageNamedTagEntry},
     package::{Package, PackageLanguage, PackagePlatform, ReadSeek, UEntryHeader, UHashTableEntry},
-    GameVersion,
+    DestinyVersion,
 };
 
 pub struct PackageD2PreBL {
@@ -84,7 +84,7 @@ impl PackageD2PreBL {
         Ok(PackageD2PreBL {
             common: PackageCommonD2::new(
                 reader.into_inner(),
-                GameVersion::Destiny2Shadowkeep,
+                DestinyVersion::Destiny2Shadowkeep,
                 header.pkg_id,
                 header.patch_id,
                 header.group_id,

@@ -11,7 +11,7 @@ use crate::{
     d2_beyondlight::structs::PackageHeader,
     d2_shared::{HashTableEntry, PackageCommonD2, PackageNamedTagEntry},
     package::{Package, PackageLanguage, PackagePlatform, ReadSeek, UEntryHeader, UHashTableEntry},
-    GameVersion,
+    DestinyVersion,
 };
 
 pub struct PackageD2BeyondLight {
@@ -24,7 +24,7 @@ unsafe impl Send for PackageD2BeyondLight {}
 unsafe impl Sync for PackageD2BeyondLight {}
 
 impl PackageD2BeyondLight {
-    pub fn open(path: &str, version: GameVersion) -> anyhow::Result<PackageD2BeyondLight> {
+    pub fn open(path: &str, version: DestinyVersion) -> anyhow::Result<PackageD2BeyondLight> {
         let reader = File::open(path).with_context(|| format!("Cannot find file '{path}'"))?;
 
         Self::from_reader(path, reader, version)
@@ -33,7 +33,7 @@ impl PackageD2BeyondLight {
     pub fn from_reader<R: ReadSeek + 'static>(
         path: &str,
         reader: R,
-        version: GameVersion,
+        version: DestinyVersion,
     ) -> anyhow::Result<PackageD2BeyondLight> {
         let mut reader = BufReader::new(reader);
         let header: PackageHeader = reader.read_le()?;

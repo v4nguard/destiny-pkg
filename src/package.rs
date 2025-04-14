@@ -7,13 +7,8 @@ use std::{
 
 use anyhow::{anyhow, ensure};
 use binrw::{BinRead, Endian};
-use clap::ValueEnum;
 
-use crate::{
-    d1_internal_alpha::PackageD1InternalAlpha, d1_legacy::PackageD1Legacy,
-    d1_roi::PackageD1RiseOfIron, d2_beta::PackageD2Beta, d2_beyondlight::PackageD2BeyondLight,
-    d2_shared::PackageNamedTagEntry, PackageD2PreBL, TagHash,
-};
+use crate::{d2_shared::PackageNamedTagEntry, TagHash};
 
 pub const BLOCK_CACHE_SIZE: usize = 128;
 
@@ -59,118 +54,6 @@ pub enum PackageLanguage {
 impl PackageLanguage {
     pub fn english_or_none(&self) -> bool {
         matches!(self, Self::None | Self::English)
-    }
-}
-
-#[derive(
-    serde::Serialize, serde::Deserialize, clap::ValueEnum, PartialEq, PartialOrd, Debug, Clone, Copy,
-)]
-pub enum GameVersion {
-    /// X360 december 2013 internal alpha version of Destiny
-    #[value(name = "d1_devalpha")]
-    DestinyInternalAlpha = 1_0500,
-
-    /// PS4 First Look Alpha
-    #[value(name = "d1_flalpha")]
-    DestinyFirstLookAlpha = 1_0800,
-
-    /// PS3/X360 version of Destiny (The Taken King)
-    #[value(name = "d1_ttk")]
-    DestinyTheTakenKing = 1_2000,
-
-    /// The latest version of Destiny (Rise of Iron)
-    #[value(name = "d1_roi")]
-    DestinyRiseOfIron = 1_2400,
-
-    /// Destiny 2 Beta
-    #[value(name = "d2_beta")]
-    Destiny2Beta = 2_1000,
-
-    #[value(name = "d2_fs")]
-    Destiny2Forsaken = 2_2000,
-
-    /// The last version of Destiny before Beyond Light (Shadowkeep/Season of Arrivals)
-    #[value(name = "d2_sk")]
-    Destiny2Shadowkeep = 2_2600,
-
-    /// Destiny 2 (Beyond Light/Season of the Lost)
-    #[value(name = "d2_bl")]
-    Destiny2BeyondLight = 2_3000,
-
-    /// Destiny 2 (Witch Queen/Season of the Seraph)
-    #[value(name = "d2_wq")]
-    Destiny2WitchQueen = 2_4000,
-
-    /// Destiny 2 (Lightfall)
-    #[value(name = "d2_lf")]
-    Destiny2Lightfall = 2_7000,
-
-    #[value(name = "d2_tfs")]
-    Destiny2TheFinalShape = 2_8000,
-}
-
-impl GameVersion {
-    pub fn open(&self, path: &str) -> anyhow::Result<Arc<dyn Package>> {
-        Ok(match self {
-            GameVersion::DestinyInternalAlpha => Arc::new(PackageD1InternalAlpha::open(path)?),
-            GameVersion::DestinyFirstLookAlpha => Arc::new(PackageD1RiseOfIron::open(path)?),
-            GameVersion::DestinyTheTakenKing => Arc::new(PackageD1Legacy::open(path)?),
-            GameVersion::DestinyRiseOfIron => Arc::new(PackageD1RiseOfIron::open(path)?),
-            GameVersion::Destiny2Beta => Arc::new(PackageD2Beta::open(path)?),
-
-            GameVersion::Destiny2Forsaken | GameVersion::Destiny2Shadowkeep => {
-                Arc::new(PackageD2PreBL::open(path)?)
-            }
-
-            GameVersion::Destiny2BeyondLight
-            | GameVersion::Destiny2WitchQueen
-            | GameVersion::Destiny2Lightfall
-            | GameVersion::Destiny2TheFinalShape => {
-                Arc::new(PackageD2BeyondLight::open(path, *self)?)
-            }
-        })
-    }
-
-    pub fn endian(&self) -> Endian {
-        match self {
-            GameVersion::DestinyInternalAlpha | GameVersion::DestinyTheTakenKing => Endian::Big,
-            _ => Endian::Little,
-        }
-    }
-
-    pub fn is_d1(&self) -> bool {
-        *self <= GameVersion::DestinyRiseOfIron
-    }
-
-    pub fn is_d2(&self) -> bool {
-        *self >= GameVersion::Destiny2Beta
-    }
-
-    pub fn is_prebl(&self) -> bool {
-        GameVersion::Destiny2Beta <= *self && *self <= GameVersion::Destiny2Shadowkeep
-    }
-
-    pub fn id(&self) -> String {
-        self.to_possible_value()
-            .expect("Package version is missing an id/commandline value")
-            .get_name()
-            .to_string()
-    }
-
-    pub fn name(&self) -> &'static str {
-        match self {
-            GameVersion::DestinyInternalAlpha => "Destiny X360 Internal Alpha",
-            GameVersion::DestinyFirstLookAlpha => "Destiny First Look Alpha",
-            GameVersion::DestinyTheTakenKing => "Destiny: The Taken King",
-            GameVersion::DestinyRiseOfIron => "Destiny: Rise of Iron",
-            GameVersion::Destiny2Beta => "Destiny 2: Beta",
-            GameVersion::Destiny2Forsaken => "Destiny 2: Forsaken",
-            GameVersion::Destiny2Shadowkeep => "Destiny 2: Shadowkeep",
-            GameVersion::Destiny2BeyondLight => "Destiny 2: Beyond Light",
-            GameVersion::Destiny2WitchQueen => "Destiny 2: Witch Queen",
-            GameVersion::Destiny2Lightfall => "Destiny 2: Lightfall",
-            GameVersion::Destiny2TheFinalShape => "Destiny 2: The Final Shape",
-        }
     }
 }
 

@@ -1,9 +1,9 @@
 use std::{fs::File, io::Write};
 
 use clap::Parser;
-use destiny_pkg::{
+use tiger_pkg::{
     package::{classify_file_prebl, PackagePlatform},
-    GameVersion, PackageManager, TagHash,
+    DestinyVersion, GameVersion, PackageManager, TagHash,
 };
 
 #[derive(Parser, Debug)]
@@ -43,7 +43,7 @@ fn main() -> anyhow::Result<()> {
 
         let out_dir = args.output_dir.clone();
 
-        let ext = if args.version == GameVersion::Destiny2Shadowkeep {
+        let ext = if args.version == GameVersion::Destiny(DestinyVersion::Destiny2Shadowkeep) {
             classify_file_prebl(entry.file_type, entry.file_subtype)
         } else {
             "bin".to_string()

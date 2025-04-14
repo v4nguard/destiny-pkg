@@ -10,7 +10,7 @@ use rustc_hash::FxHashMap;
 use tracing::{info, warn};
 
 use super::PackageManager;
-use crate::{package::PackagePlatform, GameVersion};
+use crate::{package::PackagePlatform, GameVersion, Version};
 
 impl PackageManager {
     #[cfg(feature = "ignore_package_cache")]
@@ -96,11 +96,11 @@ impl PackageManager {
         if let Some(cache) = Self::read_package_cache(false) {
             info!("Loading package cache");
             if let Some(p) = cache
-                .get_paths(version, platform, Some(packages_dir.as_ref()))
+                .get_paths(version, platform, Some(packages_dir))
                 .ok()
                 .flatten()
             {
-                let timestamp = fs::metadata(&packages_dir)
+                let timestamp = fs::metadata(packages_dir)
                     .ok()
                     .and_then(|m| {
                         Some(
@@ -115,7 +115,7 @@ impl PackageManager {
 
                 if p.timestamp < timestamp {
                     Err("Package directory changed".to_string())
-                } else if &p.base_path != packages_dir {
+                } else if p.base_path != packages_dir {
                     Err("Package directory path changed".to_string())
                 } else {
                     Ok(p.paths.clone())

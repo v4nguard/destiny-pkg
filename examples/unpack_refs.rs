@@ -2,9 +2,9 @@ use std::{fs::File, io::Write};
 
 use clap::Parser;
 use clap_num::maybe_hex;
-use destiny_pkg::{
+use tiger_pkg::{
     package::{classify_file_prebl, PackagePlatform},
-    GameVersion, PackageManager, TagHash,
+    DestinyVersion, GameVersion, PackageManager, TagHash,
 };
 
 #[derive(Parser, Debug)]
@@ -46,7 +46,7 @@ fn main() -> anyhow::Result<()> {
             .clone()
             .unwrap_or_else(|| format!("./out/{pkg_name}"));
 
-        let ext = if args.version == GameVersion::Destiny2Shadowkeep {
+        let ext = if args.version == GameVersion::Destiny(DestinyVersion::Destiny2Shadowkeep) {
             classify_file_prebl(e.file_type, e.file_subtype)
         } else {
             "bin".to_string()

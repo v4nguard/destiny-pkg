@@ -1,11 +1,11 @@
 use std::{
     fs::File,
     io::{BufWriter, Write},
-    sync::{Arc, atomic::AtomicUsize},
+    sync::{atomic::AtomicUsize, Arc},
 };
 
 use clap::Parser;
-use destiny_pkg::{GameVersion, PackageManager, TagHash, package::PackagePlatform};
+use tiger_pkg::{package::PackagePlatform, GameVersion, PackageManager, TagHash, Version};
 use itertools::Itertools;
 use parking_lot::Mutex;
 use pbr::ProgressBar;

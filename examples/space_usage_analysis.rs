@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use clap::Parser;
-use destiny_pkg::{package::PackagePlatform, GameVersion, PackageManager, TagHash};
+use tiger_pkg::{package::PackagePlatform, GameVersion, PackageManager, TagHash};
 use rustc_hash::FxHashMap;
 
 #[derive(Parser, Debug)]

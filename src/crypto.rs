@@ -5,7 +5,7 @@ use lazy_static::lazy_static;
 use parking_lot::RwLock;
 use tracing::{error, info};
 
-use crate::GameVersion;
+use crate::{DestinyVersion, GameVersion, Version};
 
 lazy_static! {
     static ref CIPHERS_EXTRA: RwLock<HashMap<u64, (Aes128Gcm, [u8; 12])>> = {
@@ -41,25 +41,11 @@ pub struct PkgGcmState {
 }
 
 impl PkgGcmState {
-    const AES_KEY_0: [u8; 16] = [
-        0xD6, 0x2A, 0xB2, 0xC1, 0x0C, 0xC0, 0x1B, 0xC5, 0x35, 0xDB, 0x7B, 0x86, 0x55, 0xC7, 0xDC,
-        0x3B,
-    ];
-
-    const AES_KEY_1: [u8; 16] = [
-        0x3A, 0x4A, 0x5D, 0x36, 0x73, 0xA6, 0x60, 0x58, 0x7E, 0x63, 0xE6, 0x76, 0xE4, 0x08, 0x92,
-        0xB5,
-    ];
-
-    const AES_NONCE_BASE: [u8; 12] = [
-        0x84, 0xDF, 0x11, 0xC0, 0xAC, 0xAB, 0xFA, 0x20, 0x33, 0x11, 0x26, 0x99,
-    ];
-
     pub fn new(pkg_id: u16, version: GameVersion, group: u64) -> PkgGcmState {
         let mut g = PkgGcmState {
-            nonce: Self::AES_NONCE_BASE,
-            cipher_0: Aes128Gcm::new(&Self::AES_KEY_0.into()),
-            cipher_1: Aes128Gcm::new(&Self::AES_KEY_1.into()),
+            nonce: version.aes_nonce_base(),
+            cipher_0: Aes128Gcm::new(&version.aes_key_0().into()),
+            cipher_1: Aes128Gcm::new(&version.aes_key_1().into()),
             cipher_extra: CIPHERS_EXTRA.read().get(&group).cloned(),
             group,
         };
@@ -70,12 +56,19 @@ impl PkgGcmState {
     }
 
     fn shift_nonce(&mut self, pkg_id: u16, version: GameVersion) {
-        self.nonce[0] ^= (pkg_id >> 8) as u8;
         match version {
-            GameVersion::Destiny2Beta | GameVersion::Destiny2Shadowkeep => self.nonce[1] = 0xf9,
-            _ => self.nonce[1] = 0xea,
+            GameVersion::Destiny(ver) => {
+                self.nonce[0] ^= (pkg_id >> 8) as u8;
+                match ver {
+                    DestinyVersion::Destiny2Beta | DestinyVersion::Destiny2Shadowkeep => {
+                        self.nonce[1] = 0xf9
+                    }
+                    _ => self.nonce[1] = 0xea,
+                }
+                self.nonce[11] ^= pkg_id as u8;
+            }
+            _ => unimplemented!(),
         }
-        self.nonce[11] ^= pkg_id as u8;
     }
 
     pub fn decrypt_block_in_place(

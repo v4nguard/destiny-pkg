@@ -10,7 +10,7 @@ under `Destiny 2\bin\x64`.
 
 In any other case, you will need to get oo2core_3_win64.dll from somewhere (an old game for example), and place it in
 the
-directory where you run destinypkgtool from. Check below for the version of oo2core that is required for your game.
+directory where you run destiny-pkg from. Check below for the version of oo2core that is required for your game.
 
 ## Package format support
 
@@ -28,6 +28,7 @@ directory where you run destinypkgtool from. Check below for the version of oo2c
 | Version               | Code          |
 |-----------------------|---------------|
 | DestinyInternalAlpha  | `d1_devalpha` |
+| DestinyFirstLookAlpha | `d1_fla`      |
 | DestinyTheTakenKing   | `d1_ttk`      |
 | DestinyRiseOfIron     | `d1_roi`      |
 | Destiny2Beta          | `d2_beta`     |

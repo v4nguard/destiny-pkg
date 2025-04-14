@@ -3,7 +3,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use tracing::{debug_span, error, info};
 
 use super::{PackageManager, TagLookupIndex};
-use crate::manager::HashTableEntryShort;
+use crate::{manager::HashTableEntryShort, Version};
 
 impl PackageManager {
     // const LOOKUP_CACHE_VERSION: u32 = 1;
