@@ -1,5 +1,3 @@
-# ⚠ WARNING: This library has been superseded by [tiger-pkg](https://github.com/v4nguard/tiger-pkg)
-
 # Destiny PKG Library
 
 [![Latest version](https://img.shields.io/crates/v/destiny-pkg.svg)](https://crates.io/crates/destiny-pkg)
