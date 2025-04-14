@@ -1,16 +1,16 @@
-# Destiny PKG Library
+# Tiger PKG Library
 
-[![Latest version](https://img.shields.io/crates/v/destiny-pkg.svg)](https://crates.io/crates/destiny-pkg)
-[![Documentation](https://docs.rs/destiny-pkg/badge.svg)](https://docs.rs/destiny-pkg)
+[![Latest version](https://img.shields.io/crates/v/tiger-pkg.svg)](https://crates.io/crates/tiger-pkg)
+[![Documentation](https://docs.rs/tiger-pkg/badge.svg)](https://docs.rs/tiger-pkg)
 ![Discord](https://img.shields.io/discord/948590455715684393?label=v4nguard%20discord&color=%2377aaff)
 
 You need an oo2core DLL to be able to decompress packages.
-When using destiny-pkg with a Destiny 2 installation, PackageManager will automatically search for oo2core
-under `Destiny 2\bin\x64`.
+When using tiger-pkg with a Destiny 2/Marathon installation, PackageManager will automatically search for oo2core
+under `bin\x64`.
 
 In any other case, you will need to get oo2core_3_win64.dll from somewhere (an old game for example), and place it in
 the
-directory where you run destiny-pkg from. Check below for the version of oo2core that is required for your game.
+directory where you run tiger-pkg from. Check below for the version of oo2core that is required for your game.
 
 ## Package format support
 
@@ -22,6 +22,7 @@ directory where you run destiny-pkg from. Check below for the version of oo2core
 | Destiny 2 (Beta)                | Any               | ✅      | oo2core_3 |
 | Destiny 2 (Pre-BL)              | Any               | ✅      | oo2core_3 |
 | Destiny 2 (Post-BL)             | Any               | ✅      | oo2core_9 |
+| Marathon                        | Any               | ❌       | oo2core_9 |
 
 ## Game version codes
 
