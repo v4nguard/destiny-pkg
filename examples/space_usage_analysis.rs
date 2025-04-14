@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use clap::Parser;
-use tiger_pkg::{package::PackagePlatform, GameVersion, PackageManager, TagHash};
 use rustc_hash::FxHashMap;
+use tiger_pkg::{package::PackagePlatform, GameVersion, PackageManager, TagHash};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None, disable_version_flag(true))]
@@ -28,8 +28,8 @@ fn main() -> anyhow::Result<()> {
 
     let mut biggest_of_type: HashMap<(u8, u8), (usize, TagHash)> = Default::default();
 
-    for (_, entries) in package_manager.lookup.tag32_entries_by_pkg {
-        for entry in entries {
+    for (pkg_id, entries) in package_manager.lookup.tag32_entries_by_pkg {
+        for (i, entry) in entries.iter().enumerate() {
             if entry.file_type == 8 || entry.file_type == 16 {
                 let e = references.entry(entry.reference).or_default();
                 e.0 += 1;
@@ -40,9 +40,9 @@ fn main() -> anyhow::Result<()> {
                 .entry((entry.file_type, entry.file_subtype))
                 .or_default()
             {
-                (size, hash) if *size < entry.file_size => {
+                (size, hash) if *size < entry.file_size as usize => {
                     *size = entry.file_size as usize;
-                    *hash = entry.hash;
+                    *hash = TagHash::new(pkg_id, i as u16);
                 }
                 _ => {}
             }
@@ -56,12 +56,10 @@ fn main() -> anyhow::Result<()> {
     }
 
     for ((ftype, fsubtype), (size, tag)) in &biggest_of_type {
-        let (size, hash) = *size;
         println!(
-            "{ftype}.{fsubtype} - {tag} ({})",
+            "biggest of type {ftype}.{fsubtype} - {tag} ({})",
             format_file_size(*size),
         );
-        println!("  Biggest: {:08X}", hash.to_be());
     }
 
     let mut resorted_totals: Vec<((u8, u8), (usize, usize))> = totals.into_iter().collect();
