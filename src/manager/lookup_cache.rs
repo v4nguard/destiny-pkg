@@ -3,7 +3,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use tracing::{debug_span, error, info};
 
 use super::{PackageManager, TagLookupIndex};
-use crate::{manager::HashTableEntryShort, Version};
+use crate::{manager::HashTableEntryShort, TagHash64, Version};
 
 impl PackageManager {
     // const LOOKUP_CACHE_VERSION: u32 = 1;
@@ -95,6 +95,11 @@ impl PackageManager {
 
         self.lookup = TagLookupIndex {
             tag32_entries_by_pkg: entries,
+            tag32_to_tag64: hashes
+                .iter()
+                .flatten()
+                .map(|(h64, entry)| (entry.hash32, TagHash64(*h64)))
+                .collect(),
             tag64_entries: hashes.into_iter().flatten().collect(),
             named_tags: named_tags.into_iter().flatten().collect(),
         };

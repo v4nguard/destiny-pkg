@@ -35,6 +35,8 @@ pub struct HashTableEntryShort {
 pub struct TagLookupIndex {
     pub tag32_entries_by_pkg: FxHashMap<u16, Vec<UEntryHeader>>,
     pub tag64_entries: FxHashMap<u64, HashTableEntryShort>,
+    pub tag32_to_tag64: FxHashMap<TagHash, TagHash64>,
+
     pub named_tags: Vec<PackageNamedTagEntry>,
 }
 
@@ -275,6 +277,11 @@ impl PackageManager {
             .iter()
             .find(|n| n.hash == tag)
             .map(|n| n.name.clone())
+    }
+
+    pub fn get_tag64_for_tag32(&self, tag: impl Into<TagHash>) -> Option<TagHash64> {
+        let tag: TagHash = tag.into();
+        self.lookup.tag32_to_tag64.get(&tag).copied()
     }
 
     /// Read any BinRead type

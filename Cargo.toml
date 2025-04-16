@@ -1,6 +1,6 @@
 [package]
 name = "tiger-pkg"
-version = "0.18.1"
+version = "0.18.2"
 edition = "2021"
 authors = ["cohaereo <cohae@cohae.dev>", "nblock <nblock@nblock.dev>"]
 description = "Tiger engine package reading library for Destiny 1/2 and Marathon"
