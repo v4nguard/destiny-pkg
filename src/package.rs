@@ -10,8 +10,6 @@ use binrw::{BinRead, Endian};
 
 use crate::{d2_shared::PackageNamedTagEntry, TagHash};
 
-pub const BLOCK_CACHE_SIZE: usize = 128;
-
 pub trait ReadSeek: Read + Seek {}
 impl<R: Read + Seek> ReadSeek for R {}
 

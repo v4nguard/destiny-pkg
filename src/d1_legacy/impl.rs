@@ -1,28 +1,20 @@
 use std::{
-    collections::hash_map::Entry,
     fs::File,
     io::{BufReader, Read, Seek, SeekFrom},
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
+    sync::Arc,
 };
 
 use anyhow::Context;
 use binrw::{BinReaderExt, Endian, VecArgs};
 use parking_lot::RwLock;
-use rustc_hash::FxHashMap;
 
 use super::structs::NamedTagEntryD1;
 use crate::{
-    common::CachedBlock,
+    block_cache::BlockCache,
     d1_legacy::structs::{BlockHeader, EntryHeader, PackageHeader},
     d2_shared::PackageNamedTagEntry,
     oodle,
-    package::{
-        Package, PackageLanguage, PackagePlatform, ReadSeek, UEntryHeader, UHashTableEntry,
-        BLOCK_CACHE_SIZE,
-    },
+    package::{Package, PackageLanguage, PackagePlatform, ReadSeek, UEntryHeader, UHashTableEntry},
 };
 
 pub const BLOCK_SIZE: usize = 0x40000;
@@ -36,8 +28,7 @@ pub struct PackageD1Legacy {
     reader: RwLock<Box<dyn ReadSeek>>,
     path_base: String,
 
-    block_counter: AtomicUsize,
-    block_cache: RwLock<FxHashMap<usize, CachedBlock>>,
+    block_cache: BlockCache,
     named_tags: Vec<PackageNamedTagEntry>,
 }
 
@@ -101,8 +92,7 @@ impl PackageD1Legacy {
             _entries: entries,
             entries_unified,
             blocks,
-            block_counter: AtomicUsize::default(),
-            block_cache: Default::default(),
+            block_cache: BlockCache::new(),
             // Remap named tags to D2 struct for convenience
             named_tags: named_tags
                 .into_iter()
@@ -193,39 +183,6 @@ impl Package for PackageD1Legacy {
     }
 
     fn get_block(&self, block_index: usize) -> anyhow::Result<Arc<Vec<u8>>> {
-        let CachedBlock { data, .. } = match self.block_cache.write().entry(block_index) {
-            Entry::Occupied(o) => o.get().clone(),
-            Entry::Vacant(v) => {
-                let block = self.read_block(*v.key())?;
-                let b = v
-                    .insert(CachedBlock {
-                        epoch: self.block_counter.load(Ordering::Relaxed),
-                        data: Arc::new(block),
-                    })
-                    .clone();
-
-                self.block_counter.store(
-                    self.block_counter.load(Ordering::Relaxed) + 1,
-                    Ordering::Relaxed,
-                );
-
-                b
-            }
-        };
-
-        while self.block_cache.read().len() > BLOCK_CACHE_SIZE {
-            let bc = self.block_cache.read();
-            let (oldest, _) = bc
-                .iter()
-                .min_by(|(_, a), (_, b)| a.epoch.cmp(&b.epoch))
-                .unwrap();
-
-            let oldest = *oldest;
-            drop(bc);
-
-            self.block_cache.write().remove(&oldest);
-        }
-
-        Ok(data)
+        self.block_cache.get(block_index, |i| self.read_block(i))
     }
 }

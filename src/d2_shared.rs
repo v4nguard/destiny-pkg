@@ -3,10 +3,7 @@ use std::{
     collections::hash_map::Entry,
     fs::File,
     io::{Read, Seek, SeekFrom},
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
+    sync::Arc,
 };
 
 use anyhow::Context;
@@ -15,10 +12,10 @@ use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    common::CachedBlock,
+    block_cache::BlockCache,
     crypto::PkgGcmState,
     oodle,
-    package::{PackageLanguage, ReadSeek, UEntryHeader, BLOCK_CACHE_SIZE},
+    package::{PackageLanguage, ReadSeek, UEntryHeader},
     DestinyVersion, GameVersion, TagHash,
 };
 
@@ -89,9 +86,7 @@ pub struct PackageCommonD2 {
     pub(crate) reader: RwLock<Box<dyn ReadSeek>>,
     pub(crate) path_base: String,
 
-    /// Used for purging old blocks
-    pub(crate) block_counter: AtomicUsize,
-    pub(crate) block_cache: RwLock<FxHashMap<usize, CachedBlock>>,
+    block_cache: BlockCache,
     pub(crate) file_handles: RwLock<FxHashMap<usize, File>>,
 }
 
@@ -143,8 +138,7 @@ impl PackageCommonD2 {
             wide_hashes,
             reader: RwLock::new(Box::new(reader)),
             path_base,
-            block_counter: AtomicUsize::default(),
-            block_cache: Default::default(),
+            block_cache: BlockCache::new(),
             file_handles: Default::default(),
         })
     }
@@ -238,40 +232,7 @@ impl PackageCommonD2 {
 
     pub fn get_block(&self, block_index: usize) -> anyhow::Result<Arc<Vec<u8>>> {
         let _span = tracing::debug_span!("PackageCommonD2::get_block", block_index).entered();
-        let CachedBlock { data, .. } = match self.block_cache.write().entry(block_index) {
-            Entry::Occupied(o) => o.get().clone(),
-            Entry::Vacant(v) => {
-                let block = self.read_block(*v.key())?;
-                let b = v
-                    .insert(CachedBlock {
-                        epoch: self.block_counter.load(Ordering::Relaxed),
-                        data: Arc::new(block),
-                    })
-                    .clone();
-
-                self.block_counter.store(
-                    self.block_counter.load(Ordering::Relaxed) + 1,
-                    Ordering::Relaxed,
-                );
-
-                b
-            }
-        };
-
-        while self.block_cache.read().len() > BLOCK_CACHE_SIZE {
-            let bc = self.block_cache.read();
-            let (oldest, _) = bc
-                .iter()
-                .min_by(|(_, a), (_, b)| a.epoch.cmp(&b.epoch))
-                .unwrap();
-
-            let oldest = *oldest;
-            drop(bc);
-
-            self.block_cache.write().remove(&oldest);
-        }
-
-        Ok(data)
+        self.block_cache.get(block_index, |i| self.read_block(i))
     }
 }
 
