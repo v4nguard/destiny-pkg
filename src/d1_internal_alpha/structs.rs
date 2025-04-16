@@ -4,6 +4,7 @@ use crate::package::{PackageLanguage, PackagePlatform};
 
 #[derive(BinRead, Debug)]
 #[br(big)]
+#[allow(dead_code)]
 pub struct PackageHeader {
     #[br(assert(version == 11))]
     pub version: u16,
@@ -63,6 +64,7 @@ pub struct EntryHeader {
 
 #[derive(BinRead, Debug)]
 #[br(big)]
+#[allow(dead_code)]
 pub struct EntryHeader2 {
     pub unk0: u32,
     pub unk4: u32,

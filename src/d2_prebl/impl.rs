@@ -8,7 +8,7 @@ use binrw::{BinReaderExt, Endian, VecArgs};
 
 use crate::{
     d2_prebl::structs::PackageHeader,
-    d2_shared::{HashTableEntry, PackageCommonD2, PackageNamedTagEntry},
+    d2_shared::{CommonPackageData, HashTableEntry, PackageCommonD2, PackageNamedTagEntry},
     package::{Package, PackageLanguage, PackagePlatform, ReadSeek, UEntryHeader, UHashTableEntry},
     DestinyVersion,
 };
@@ -55,7 +55,7 @@ impl PackageD2PreBL {
             inner: (),
         })?;
 
-        let hashes: Vec<HashTableEntry> = if header.misc_data_offset != 0 {
+        let wide_hashes: Vec<HashTableEntry> = if header.misc_data_offset != 0 {
             reader.seek(SeekFrom::Start((header.misc_data_offset + 0x30) as _))?;
             let h64_table_size: u64 = reader.read_le()?;
             let real_h64_table_offset: u64 = reader.read_le()?;
@@ -85,14 +85,16 @@ impl PackageD2PreBL {
             common: PackageCommonD2::new(
                 reader.into_inner(),
                 DestinyVersion::Destiny2Shadowkeep,
-                header.pkg_id,
-                header.patch_id,
-                header.group_id,
-                entries,
-                blocks,
-                hashes,
                 path.to_string(),
-                header.language,
+                CommonPackageData {
+                    pkg_id: header.pkg_id,
+                    patch_id: header.patch_id,
+                    group_id: header.group_id,
+                    entries,
+                    blocks,
+                    wide_hashes,
+                    language: header.language,
+                },
             )?,
             header,
             named_tags,
@@ -124,7 +126,7 @@ impl Package for PackageD2PreBL {
 
     fn hash64_table(&self) -> Vec<UHashTableEntry> {
         self.common
-            .hashes
+            .wide_hashes
             .iter()
             .map(|h| UHashTableEntry {
                 hash64: h.hash64,

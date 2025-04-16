@@ -154,14 +154,12 @@ impl PackageManager {
             s.build_lookup_tables();
             s.write_package_cache().ok();
             s.write_lookup_cache().ok();
+        } else if let Some(lookup_cache) = s.read_lookup_cache() {
+            s.lookup = lookup_cache;
         } else {
-            if let Some(lookup_cache) = s.read_lookup_cache() {
-                s.lookup = lookup_cache;
-            } else {
-                info!("No valid index cache found, rebuilding");
-                s.build_lookup_tables();
-                s.write_lookup_cache().ok();
-            }
+            info!("No valid index cache found, rebuilding");
+            s.build_lookup_tables();
+            s.write_lookup_cache().ok();
         }
 
         Ok(s)

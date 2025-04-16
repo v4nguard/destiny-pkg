@@ -15,6 +15,7 @@ use rustc_hash::FxHashMap;
 
 use super::structs::NamedTagEntryD1;
 use crate::{
+    common::CachedBlock,
     d1_roi::structs::{BlockHeader, EntryHeader, PackageHeader},
     d2_shared::PackageNamedTagEntry,
     oodle,
@@ -36,7 +37,7 @@ pub struct PackageD1RiseOfIron {
     path_base: String,
 
     block_counter: AtomicUsize,
-    block_cache: RwLock<FxHashMap<usize, (usize, Arc<Vec<u8>>)>>,
+    block_cache: RwLock<FxHashMap<usize, CachedBlock>>,
     named_tags: Vec<PackageNamedTagEntry>,
 }
 
@@ -192,12 +193,15 @@ impl Package for PackageD1RiseOfIron {
     }
 
     fn get_block(&self, block_index: usize) -> anyhow::Result<Arc<Vec<u8>>> {
-        let (_, b) = match self.block_cache.write().entry(block_index) {
+        let CachedBlock { data, .. } = match self.block_cache.write().entry(block_index) {
             Entry::Occupied(o) => o.get().clone(),
             Entry::Vacant(v) => {
                 let block = self.read_block(*v.key())?;
                 let b = v
-                    .insert((self.block_counter.load(Ordering::Relaxed), Arc::new(block)))
+                    .insert(CachedBlock {
+                        epoch: self.block_counter.load(Ordering::Relaxed),
+                        data: Arc::new(block),
+                    })
                     .clone();
 
                 self.block_counter.store(
@@ -213,7 +217,7 @@ impl Package for PackageD1RiseOfIron {
             let bc = self.block_cache.read();
             let (oldest, _) = bc
                 .iter()
-                .min_by(|(_, (at, _)), (_, (bt, _))| at.cmp(bt))
+                .min_by(|(_, a), (_, b)| a.epoch.cmp(&b.epoch))
                 .unwrap();
 
             let oldest = *oldest;
@@ -222,6 +226,6 @@ impl Package for PackageD1RiseOfIron {
             self.block_cache.write().remove(&oldest);
         }
 
-        Ok(b)
+        Ok(data)
     }
 }

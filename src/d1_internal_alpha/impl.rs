@@ -14,7 +14,8 @@ use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    d1_internal_alpha::structs::{BlockHeader, EntryHeader, EntryHeader2, PackageHeader},
+    common::CachedBlock,
+    d1_internal_alpha::structs::{BlockHeader, EntryHeader, PackageHeader},
     d1_roi::structs::NamedTagEntryD1,
     oodle,
     package::{
@@ -28,17 +29,16 @@ pub const BLOCK_SIZE: usize = 0x40000;
 
 pub struct PackageD1InternalAlpha {
     pub header: PackageHeader,
-    entries: Vec<EntryHeader>,
-    entries2: Vec<EntryHeader2>,
+    // entries: Vec<EntryHeader>,
+    // entries2: Vec<EntryHeader2>,
     unified_entries: Vec<UEntryHeader>,
     blocks: Vec<BlockHeader>,
     named_tags: Vec<PackageNamedTagEntry>,
 
     reader: RwLock<Box<dyn ReadSeek>>,
-    path_base: String,
-
+    // path_base: String,
     block_counter: AtomicUsize,
-    block_cache: RwLock<FxHashMap<usize, (usize, Arc<Vec<u8>>)>>,
+    block_cache: RwLock<FxHashMap<usize, CachedBlock>>,
 }
 
 unsafe impl Send for PackageD1InternalAlpha {}
@@ -52,7 +52,7 @@ impl PackageD1InternalAlpha {
     }
 
     pub fn from_reader<R: ReadSeek + 'static>(
-        path: &str,
+        _path: &str,
         reader: R,
     ) -> anyhow::Result<PackageD1InternalAlpha> {
         let mut reader = BufReader::new(reader);
@@ -65,12 +65,12 @@ impl PackageD1InternalAlpha {
                 .finalize(),
         )?;
 
-        reader.seek(SeekFrom::Start(header.entry2_table_offset as u64))?;
-        let entries2: Vec<EntryHeader2> = reader.read_be_args(
-            VecArgs::builder()
-                .count(header.entry2_table_size as usize)
-                .finalize(),
-        )?;
+        // reader.seek(SeekFrom::Start(header.entry2_table_offset as u64))?;
+        // let entries2: Vec<EntryHeader2> = reader.read_be_args(
+        //     VecArgs::builder()
+        //         .count(header.entry2_table_size as usize)
+        //         .finalize(),
+        // )?;
 
         reader.seek(SeekFrom::Start(header.block_table_offset as u64))?;
         let blocks: Vec<BlockHeader> = reader.read_be_args(
@@ -86,8 +86,8 @@ impl PackageD1InternalAlpha {
                 .finalize(),
         )?;
 
-        let last_underscore_pos = path.rfind('_').unwrap();
-        let path_base = path[..last_underscore_pos].to_owned();
+        // let last_underscore_pos = path.rfind('_').unwrap();
+        // let path_base = path[..last_underscore_pos].to_owned();
 
         let unified_entries = entries
             .iter()
@@ -104,11 +104,11 @@ impl PackageD1InternalAlpha {
         // assert_eq!(entries.len(), entries2.len());
 
         Ok(PackageD1InternalAlpha {
-            path_base,
+            // path_base,
             reader: RwLock::new(Box::new(reader.into_inner())),
             header,
-            entries,
-            entries2,
+            // entries,
+            // entries2,
             unified_entries,
             blocks,
             block_counter: AtomicUsize::default(),
@@ -194,12 +194,15 @@ impl Package for PackageD1InternalAlpha {
     }
 
     fn get_block(&self, block_index: usize) -> anyhow::Result<Arc<Vec<u8>>> {
-        let (_, b) = match self.block_cache.write().entry(block_index) {
+        let CachedBlock { data, .. } = match self.block_cache.write().entry(block_index) {
             Entry::Occupied(o) => o.get().clone(),
             Entry::Vacant(v) => {
                 let block = self.read_block(*v.key())?;
                 let b = v
-                    .insert((self.block_counter.load(Ordering::Relaxed), Arc::new(block)))
+                    .insert(CachedBlock {
+                        epoch: self.block_counter.load(Ordering::Relaxed),
+                        data: Arc::new(block),
+                    })
                     .clone();
 
                 self.block_counter.store(
@@ -215,7 +218,7 @@ impl Package for PackageD1InternalAlpha {
             let bc = self.block_cache.read();
             let (oldest, _) = bc
                 .iter()
-                .min_by(|(_, (at, _)), (_, (bt, _))| at.cmp(bt))
+                .min_by(|(_, a), (_, b)| a.epoch.cmp(&b.epoch))
                 .unwrap();
 
             let oldest = *oldest;
@@ -224,6 +227,6 @@ impl Package for PackageD1InternalAlpha {
             self.block_cache.write().remove(&oldest);
         }
 
-        Ok(b)
+        Ok(data)
     }
 }

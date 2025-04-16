@@ -79,12 +79,11 @@ impl PkgGcmState {
     ) -> anyhow::Result<()> {
         if (flags & 0x8) != 0 {
             if let Some((cipher, iv)) = &self.cipher_extra {
-                match cipher.decrypt_in_place_detached(iv.as_slice().into(), &[], data, tag.into())
+                if cipher
+                    .decrypt_in_place_detached(iv.as_slice().into(), &[], data, tag.into())
+                    .is_ok()
                 {
-                    Ok(_) => {
-                        return Ok(());
-                    }
-                    Err(_) => {}
+                    return Ok(());
                 }
             }
 

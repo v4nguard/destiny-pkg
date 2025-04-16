@@ -7,7 +7,7 @@ use std::{
 
 use itertools::Itertools;
 use rustc_hash::FxHashMap;
-use tracing::{info, warn};
+use tracing::info;
 
 use super::PackageManager;
 use crate::{package::PackagePlatform, GameVersion, Version};
@@ -36,7 +36,7 @@ impl PackageManager {
         if let Some(ref c) = cache {
             if c.cache_version != PathCache::VERSION {
                 if !silent {
-                    warn!("Package cache is outdated, building a new one");
+                    tracing::warn!("Package cache is outdated, building a new one");
                 }
                 return None;
             }
@@ -87,7 +87,6 @@ impl PackageManager {
         )?)
     }
 
-    #[must_use]
     pub(super) fn validate_cache(
         version: GameVersion,
         platform: Option<PackagePlatform>,
@@ -190,7 +189,7 @@ impl PathCache {
             );
         }
 
-        Ok(matches.first().map(|v| *v))
+        Ok(matches.first().copied())
     }
 }
 

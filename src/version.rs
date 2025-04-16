@@ -118,7 +118,7 @@ pub enum MarathonVersion {
 }
 
 impl Version for MarathonVersion {
-    fn open(&self, path: &str) -> anyhow::Result<Arc<dyn Package>> {
+    fn open(&self, _path: &str) -> anyhow::Result<Arc<dyn Package>> {
         unimplemented!()
     }
 

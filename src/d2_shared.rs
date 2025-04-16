@@ -15,6 +15,7 @@ use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
 
 use crate::{
+    common::CachedBlock,
     crypto::PkgGcmState,
     oodle,
     package::{PackageLanguage, ReadSeek, UEntryHeader, BLOCK_CACHE_SIZE},
@@ -50,7 +51,7 @@ pub struct BlockHeader {
     pub size: u32,
     pub patch_id: u16,
     pub flags: u16,
-    pub hash: [u8; 20],
+    pub _hash: [u8; 20],
     pub gcm_tag: [u8; 16],
 }
 
@@ -63,6 +64,16 @@ pub struct HashTableEntry {
 
 pub const BLOCK_SIZE: usize = 0x40000;
 
+pub struct CommonPackageData {
+    pub pkg_id: u16,
+    pub patch_id: u16,
+    pub group_id: u64,
+    pub entries: Vec<EntryHeader>,
+    pub blocks: Vec<BlockHeader>,
+    pub wide_hashes: Vec<HashTableEntry>,
+    pub language: PackageLanguage,
+}
+
 pub struct PackageCommonD2 {
     pub(crate) version: DestinyVersion,
     pub(crate) pkg_id: u16,
@@ -73,14 +84,14 @@ pub struct PackageCommonD2 {
     pub(crate) _entries: Vec<EntryHeader>,
     pub(crate) entries_unified: Arc<[UEntryHeader]>,
     pub(crate) blocks: Vec<BlockHeader>,
-    pub(crate) hashes: Vec<HashTableEntry>,
+    pub(crate) wide_hashes: Vec<HashTableEntry>,
 
     pub(crate) reader: RwLock<Box<dyn ReadSeek>>,
     pub(crate) path_base: String,
 
     /// Used for purging old blocks
     pub(crate) block_counter: AtomicUsize,
-    pub(crate) block_cache: RwLock<FxHashMap<usize, (usize, Arc<Vec<u8>>)>>,
+    pub(crate) block_cache: RwLock<FxHashMap<usize, CachedBlock>>,
     pub(crate) file_handles: RwLock<FxHashMap<usize, File>>,
 }
 
@@ -88,15 +99,19 @@ impl PackageCommonD2 {
     pub fn new<R: ReadSeek + 'static>(
         reader: R,
         version: DestinyVersion,
-        pkg_id: u16,
-        patch_id: u16,
-        group_id: u64,
-        entries: Vec<EntryHeader>,
-        blocks: Vec<BlockHeader>,
-        hashes: Vec<HashTableEntry>,
         path: String,
-        language: PackageLanguage,
+        data: CommonPackageData,
     ) -> anyhow::Result<PackageCommonD2> {
+        let CommonPackageData {
+            pkg_id,
+            patch_id,
+            group_id,
+            entries,
+            blocks,
+            wide_hashes,
+            language,
+        } = data;
+
         let last_underscore_pos = path.rfind('_').unwrap();
         let path_base = path[..last_underscore_pos].to_owned();
 
@@ -125,7 +140,7 @@ impl PackageCommonD2 {
             _entries: entries,
             entries_unified: entries_unified.into(),
             blocks,
-            hashes,
+            wide_hashes,
             reader: RwLock::new(Box::new(reader)),
             path_base,
             block_counter: AtomicUsize::default(),
@@ -223,12 +238,15 @@ impl PackageCommonD2 {
 
     pub fn get_block(&self, block_index: usize) -> anyhow::Result<Arc<Vec<u8>>> {
         let _span = tracing::debug_span!("PackageCommonD2::get_block", block_index).entered();
-        let (_, b) = match self.block_cache.write().entry(block_index) {
+        let CachedBlock { data, .. } = match self.block_cache.write().entry(block_index) {
             Entry::Occupied(o) => o.get().clone(),
             Entry::Vacant(v) => {
                 let block = self.read_block(*v.key())?;
                 let b = v
-                    .insert((self.block_counter.load(Ordering::Relaxed), Arc::new(block)))
+                    .insert(CachedBlock {
+                        epoch: self.block_counter.load(Ordering::Relaxed),
+                        data: Arc::new(block),
+                    })
                     .clone();
 
                 self.block_counter.store(
@@ -244,7 +262,7 @@ impl PackageCommonD2 {
             let bc = self.block_cache.read();
             let (oldest, _) = bc
                 .iter()
-                .min_by(|(_, (at, _)), (_, (bt, _))| at.cmp(bt))
+                .min_by(|(_, a), (_, b)| a.epoch.cmp(&b.epoch))
                 .unwrap();
 
             let oldest = *oldest;
@@ -253,7 +271,7 @@ impl PackageCommonD2 {
             self.block_cache.write().remove(&oldest);
         }
 
-        Ok(b)
+        Ok(data)
     }
 }
 

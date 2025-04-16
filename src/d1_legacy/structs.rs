@@ -2,10 +2,14 @@ use std::io::SeekFrom;
 
 use binrw::{binrw, BinRead};
 
-use crate::{package::{PackageLanguage, PackagePlatform}, TagHash};
+use crate::{
+    package::{PackageLanguage, PackagePlatform},
+    TagHash,
+};
 
 #[derive(BinRead, Debug)]
 #[br(big)]
+#[allow(dead_code)]
 pub struct PackageHeader {
     #[br(assert(version == 24))]
     pub version: u16,

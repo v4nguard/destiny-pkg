@@ -2,6 +2,7 @@
 
 extern crate core;
 
+mod common;
 mod crypto;
 mod d2_shared;
 mod oodle;

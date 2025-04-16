@@ -8,7 +8,7 @@ use binrw::{BinReaderExt, Endian, VecArgs};
 
 use crate::{
     d2_beta::structs::PackageHeader,
-    d2_shared::{PackageCommonD2, PackageNamedTagEntry},
+    d2_shared::{CommonPackageData, PackageCommonD2, PackageNamedTagEntry},
     package::{Package, PackageLanguage, PackagePlatform, ReadSeek, UEntryHeader, UHashTableEntry},
     DestinyVersion,
 };
@@ -65,14 +65,16 @@ impl PackageD2Beta {
             common: PackageCommonD2::new(
                 reader.into_inner(),
                 DestinyVersion::Destiny2Beta,
-                header.pkg_id,
-                header.patch_id,
-                header.group_id,
-                entries,
-                blocks,
-                vec![],
                 path.to_string(),
-                header.language,
+                CommonPackageData {
+                    pkg_id: header.pkg_id,
+                    patch_id: header.patch_id,
+                    group_id: header.group_id,
+                    entries,
+                    blocks,
+                    wide_hashes: vec![],
+                    language: header.language,
+                },
             )?,
             header,
             named_tags,

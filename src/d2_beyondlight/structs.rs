@@ -5,6 +5,7 @@ use binrw::BinRead;
 use crate::package::{PackageLanguage, PackagePlatform};
 
 #[derive(BinRead, Debug)]
+#[allow(dead_code)]
 pub struct PackageHeader {
     #[br(assert(version == 53))]
     pub version: u16,

@@ -9,7 +9,7 @@ use binrw::{BinReaderExt, Endian, VecArgs};
 
 use crate::{
     d2_beyondlight::structs::PackageHeader,
-    d2_shared::{HashTableEntry, PackageCommonD2, PackageNamedTagEntry},
+    d2_shared::{CommonPackageData, HashTableEntry, PackageCommonD2, PackageNamedTagEntry},
     package::{Package, PackageLanguage, PackagePlatform, ReadSeek, UEntryHeader, UHashTableEntry},
     DestinyVersion,
 };
@@ -56,7 +56,7 @@ impl PackageD2BeyondLight {
             inner: (),
         })?;
 
-        let hashes: Vec<HashTableEntry> = if header.h64_table_size != 0 {
+        let wide_hashes: Vec<HashTableEntry> = if header.h64_table_size != 0 {
             reader.seek(SeekFrom::Start((header.h64_table_offset + 0x50) as _))?;
             reader.read_le_args(VecArgs {
                 count: header.h64_table_size as _,
@@ -70,14 +70,16 @@ impl PackageD2BeyondLight {
             common: PackageCommonD2::new(
                 reader.into_inner(),
                 version,
-                header.pkg_id,
-                header.patch_id,
-                header.group_id,
-                entries,
-                blocks,
-                hashes,
                 path.to_string(),
-                header.language,
+                CommonPackageData {
+                    pkg_id: header.pkg_id,
+                    patch_id: header.patch_id,
+                    group_id: header.group_id,
+                    entries,
+                    blocks,
+                    wide_hashes,
+                    language: header.language,
+                },
             )?,
             header,
             named_tags,
@@ -109,7 +111,7 @@ impl Package for PackageD2BeyondLight {
 
     fn hash64_table(&self) -> Vec<UHashTableEntry> {
         self.common
-            .hashes
+            .wide_hashes
             .iter()
             .map(|h| UHashTableEntry {
                 hash64: h.hash64,
