@@ -23,7 +23,7 @@ clap = { version = "4.5.4", features = ["derive"] }
 clap-num = "1.0.2"
 hex = "0.4.3"
 itertools = "0.13"
-lazy_static = "1.4.0"
+lazy_static = "1"
 libloading = "0.8.0"
 parking_lot = "0.12.1"
 rayon = "1.7.0"
@@ -38,6 +38,8 @@ flip_tag_format = []
 ignore_caches = ["ignore_package_cache", "ignore_lookup_cache"]
 ignore_package_cache = []
 ignore_lookup_cache = []
+# Provides a global package manager instance
+global_manager_instance = []
 
 [dev-dependencies]
 env_logger = "0.10.0"

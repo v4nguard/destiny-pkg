@@ -26,3 +26,9 @@ pub use manager::PackageManager;
 pub use package::{Package, PackageLanguage, PackagePlatform};
 pub use tag::{TagHash, TagHash64};
 pub use version::{DestinyVersion, GameVersion, Version};
+
+#[cfg(feature = "global_manager_instance")]
+mod global_instance;
+
+#[cfg(feature = "global_manager_instance")]
+pub use global_instance::*;
