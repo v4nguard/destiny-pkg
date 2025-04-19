@@ -20,15 +20,23 @@ pub trait Version: clap::ValueEnum {
     }
 
     fn aes_key_0(&self) -> [u8; 16] {
-        [0u8; 16]
+        [
+            0xD6, 0x2A, 0xB2, 0xC1, 0x0C, 0xC0, 0x1B, 0xC5, 0x35, 0xDB, 0x7B, 0x86, 0x55, 0xC7,
+            0xDC, 0x3B,
+        ]
     }
 
     fn aes_key_1(&self) -> [u8; 16] {
-        [0u8; 16]
+        [
+            0x3A, 0x4A, 0x5D, 0x36, 0x73, 0xA6, 0x60, 0x58, 0x7E, 0x63, 0xE6, 0x76, 0xE4, 0x08,
+            0x92, 0xB5,
+        ]
     }
 
     fn aes_nonce_base(&self) -> [u8; 12] {
-        [0u8; 12]
+        [
+            0x84, 0xDF, 0x11, 0xC0, 0xAC, 0xAB, 0xFA, 0x20, 0x33, 0x11, 0x26, 0x99,
+        ]
     }
 }
 
@@ -118,8 +126,12 @@ pub enum MarathonVersion {
 }
 
 impl Version for MarathonVersion {
-    fn open(&self, _path: &str) -> anyhow::Result<Arc<dyn Package>> {
-        unimplemented!()
+    fn open(&self, path: &str) -> anyhow::Result<Arc<dyn Package>> {
+        // nblock: Version (53) is the same as D2BeyondLight. Using Final Shape version for now.
+        Ok(Arc::new(PackageD2BeyondLight::open(
+            path,
+            DestinyVersion::Destiny2TheFinalShape,
+        )?))
     }
 
     fn endian(&self) -> Endian {
@@ -241,25 +253,5 @@ impl Version for DestinyVersion {
             DestinyVersion::Destiny2Lightfall => "Destiny 2: Lightfall",
             DestinyVersion::Destiny2TheFinalShape => "Destiny 2: The Final Shape",
         }
-    }
-
-    fn aes_key_0(&self) -> [u8; 16] {
-        [
-            0xD6, 0x2A, 0xB2, 0xC1, 0x0C, 0xC0, 0x1B, 0xC5, 0x35, 0xDB, 0x7B, 0x86, 0x55, 0xC7,
-            0xDC, 0x3B,
-        ]
-    }
-
-    fn aes_key_1(&self) -> [u8; 16] {
-        [
-            0x3A, 0x4A, 0x5D, 0x36, 0x73, 0xA6, 0x60, 0x58, 0x7E, 0x63, 0xE6, 0x76, 0xE4, 0x08,
-            0x92, 0xB5,
-        ]
-    }
-
-    fn aes_nonce_base(&self) -> [u8; 12] {
-        [
-            0x84, 0xDF, 0x11, 0xC0, 0xAC, 0xAB, 0xFA, 0x20, 0x33, 0x11, 0x26, 0x99,
-        ]
     }
 }
