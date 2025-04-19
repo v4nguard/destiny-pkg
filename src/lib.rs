@@ -26,7 +26,7 @@ pub use d2_shared::PackageNamedTagEntry;
 pub use manager::PackageManager;
 pub use package::{Package, PackageLanguage, PackagePlatform};
 pub use tag::{TagHash, TagHash64};
-pub use version::{DestinyVersion, GameVersion, Version};
+pub use version::{DestinyVersion, GameVersion, MarathonVersion, Version};
 
 #[cfg(feature = "global_manager_instance")]
 mod global_instance;
