@@ -9,8 +9,12 @@ lazy_static! {
     static ref PACKAGE_MANAGER: RwLock<Option<Arc<PackageManager>>> = RwLock::new(None);
 }
 
-pub fn initialize(pm: &Arc<PackageManager>) {
+pub fn initialize_package_manager(pm: &Arc<PackageManager>) {
     *PACKAGE_MANAGER.write() = Some(pm.clone());
+}
+
+pub fn finalize_package_manager() {
+    *PACKAGE_MANAGER.write() = None;
 }
 
 pub fn package_manager_checked() -> anyhow::Result<Arc<PackageManager>> {
