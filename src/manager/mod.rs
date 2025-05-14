@@ -107,7 +107,10 @@ impl PackageManager {
                 Ok(())
             })?;
 
-            packages_all.sort();
+            packages_all.sort_by_cached_key(|p| {
+                let p = PackagePath::parse_with_defaults(p);
+                (p.id, p.patch)
+            });
 
             debug_span!("Filter latest packages").in_scope(|| {
                 for p in packages_all {
