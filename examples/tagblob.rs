@@ -5,11 +5,14 @@ use std::{
 };
 
 use clap::Parser;
-use tiger_pkg::{package::PackagePlatform, GameVersion, PackageManager, TagHash, Version};
 use itertools::Itertools;
 use parking_lot::Mutex;
 use pbr::ProgressBar;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use tiger_pkg::{
+    package::PackagePlatform, DestinyVersion, GameVersion, MarathonVersion, PackageManager,
+    TagHash, Version,
+};
 use tracing_subscriber::layer::SubscriberExt;
 
 #[derive(Parser, Debug)]
@@ -26,6 +29,26 @@ struct Args {
     platform: Option<PackagePlatform>,
 }
 
+pub fn wwise_bank_type(version: GameVersion) -> (u8, u8) {
+    match version {
+        GameVersion::Destiny(v) => match v {
+            DestinyVersion::DestinyInternalAlpha => (0, 15),
+            DestinyVersion::DestinyTheTakenKing
+            | DestinyVersion::DestinyFirstLookAlpha
+            | DestinyVersion::DestinyRiseOfIron => (0, 20),
+            DestinyVersion::Destiny2Beta
+            | DestinyVersion::Destiny2Forsaken
+            | DestinyVersion::Destiny2Shadowkeep => (26, 5),
+            DestinyVersion::Destiny2BeyondLight
+            | DestinyVersion::Destiny2WitchQueen
+            | DestinyVersion::Destiny2Lightfall
+            | DestinyVersion::Destiny2TheFinalShape => (26, 6),
+        },
+        // Same as post-BeyondLight
+        GameVersion::Marathon(MarathonVersion::MarathonAlpha) => (26, 6),
+    }
+}
+
 fn main() -> anyhow::Result<()> {
     tracy_client::Client::start();
     tracing::subscriber::set_global_default(
@@ -40,7 +63,8 @@ fn main() -> anyhow::Result<()> {
     let mut entries = vec![];
     entries.extend(package_manager.get_all_by_type(8, None)); // Tag
     entries.extend(package_manager.get_all_by_type(16, None)); // TagGlobal
-    entries.extend(package_manager.get_all_by_type(26, Some(6))); // WwiseBank
+    let (bank_type, bank_subtype) = wwise_bank_type(package_manager.version);
+    entries.extend(package_manager.get_all_by_type(bank_type, Some(bank_subtype))); // WwiseBank
 
     let blob_size = entries.iter().fold(0usize, |size, (_, e)| {
         size + ((e.file_size + 0xf) & !0xf) as usize
